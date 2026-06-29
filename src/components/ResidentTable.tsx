@@ -449,7 +449,7 @@ export default function ResidentTable({
                       <td className="py-3.5 px-4 text-center font-bold text-stone-800">{item.luas ? `${item.luas} m²` : '-'}</td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${statusBadgeColor}`}>
-                          {item.terimaSertipikat === 'Sudah' ? 'Terbit (Selesai)' : (item.terimaSertipikat === 'Sedang Proses' ? 'Sedang Diproses' : 'Belum Diajukan')}
+                          {item.terimaSertipikat === 'Sudah' ? 'Terbit' : (item.terimaSertipikat === 'Sedang Proses' ? 'Diproses' : 'Belum')}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">

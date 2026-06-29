@@ -447,7 +447,7 @@ export default function App() {
             {/* Logo TAMBE HUB */}
             <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100 inline-block mb-2">
               <h1 className="text-3xl font-black tracking-tighter text-blue-600 leading-none mb-1">
-                HUNIAN<span className="text-orange-500 underline decoration-yellow-400">TAMBE</span>
+                HUNTAP<span className="text-orange-500 underline decoration-yellow-400">TAMBE</span>
               </h1>
               <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">Portal Data Hunian</p>
             </div>
@@ -536,7 +536,7 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <div className="text-left">
                   <h1 className="text-2xl font-black tracking-tighter text-blue-600 leading-none mb-0.5">
-                    HUNIAN<span className="text-orange-500 underline decoration-yellow-400">TAMBE</span>
+                    HUNTAP<span className="text-orange-500 underline decoration-yellow-400">TAMBE</span>
                   </h1>
                   <span className="text-[9px] text-stone-400 font-extrabold uppercase tracking-widest block">Portal Data &amp; Sertipikasi Huntap Tambe</span>
                 </div>
