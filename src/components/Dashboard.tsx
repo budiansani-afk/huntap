@@ -29,7 +29,10 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
   const percentageSudah = total > 0 ? Math.round((sudahCount / total) * 100) : 0;
 
   // Filter categorization statistics
-  const skData = residents.filter(r => r.dokumenTanah?.toLowerCase().includes('sk'));
+  const skData = residents.filter(r => {
+    const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+    return /\bsk\b/i.test(text) || (r.dokumenTanah || '').toLowerCase().includes('sk');
+  });
   const skCount = skData.length;
   const skSudah = skData.filter(r => r.terimaSertipikat === 'Sudah').length;
   const skBelum = skData.filter(r => r.terimaSertipikat === 'Belum').length;
@@ -39,35 +42,58 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
   const targetSK = 174;
   const selisihSK = Math.max(0, targetSK - skCount);
 
-  const shpData = residents.filter(r => r.dokumenTanah?.toLowerCase().includes('shp'));
+  const shpData = residents.filter(r => {
+    const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+    return text.includes('shp');
+  });
   const shpCount = shpData.length;
 
-  const shmData = residents.filter(r => r.dokumenTanah?.toLowerCase().includes('shm'));
+  const shmData = residents.filter(r => {
+    const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+    return text.includes('shm');
+  });
   const shmCount = shmData.length;
 
-  const lcData = residents.filter(r => r.dokumenTanah?.toLowerCase().includes('lc'));
+  const lcData = residents.filter(r => {
+    const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+    return text.includes('lc');
+  });
   const lcCount = lcData.length;
 
   const overlapData = residents.filter(r => {
-    const txt = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '')).toLowerCase();
+    const txt = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
     return txt.includes('tumpang') || txt.includes('tindih') || txt.includes('overlap') || txt.includes('sengketa');
   });
   const overlapCount = overlapData.length;
 
   const belumAjukanData = residents.filter(r => {
-    if (r.terimaSertipikat !== 'Belum') return false;
-    const txt = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '')).toLowerCase();
-    const hasProgress = txt.includes('proses') || txt.includes('diajukan') || txt.includes('ukur') || r.progressStep > 1;
-    return !hasProgress;
+    const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+    const isBelum = r.terimaSertipikat === 'Belum';
+    const hasKendala =
+      text.includes('tumpang') ||
+      text.includes('tindih') ||
+      text.includes('overlap') ||
+      text.includes('shp') ||
+      text.includes('shm') ||
+      text.includes('lc');
+    return isBelum && !hasKendala;
   });
   const belumAjukanCount = belumAjukanData.length;
 
-  // Pie Chart Data for status
+  // Pie Chart Data for status matching table badges
   const statusPieData = [
-    { name: 'Sudah Terbit', value: sudahCount, color: '#3b82f6' }, // Soft Blue
-    { name: 'Sedang Proses', value: sedangProsesCount, color: '#f97316' }, // Soft Orange
-    { name: 'Belum Diajukan', value: belumCount, color: '#eab308' } // Soft Yellow
+    { name: 'Sudah Terbit', value: sudahCount, color: '#10b981' }, // Green (Emerald-500)
+    { name: 'Sedang Proses', value: sedangProsesCount, color: '#f59e0b' }, // Yellow (Amber-500)
+    { name: 'Belum Diajukan', value: belumCount, color: '#ef4444' } // Red (Red-500)
   ].filter(item => item.value > 0);
+
+  // Bar Chart Data for Kendala Pertanahan
+  const kendalaChartData = [
+    { name: 'Ada SHP Asal', 'Kavling': shpCount, color: '#64748b' },
+    { name: 'Ada SHM Asal', 'Kavling': shmCount, color: '#3b82f6' },
+    { name: 'Konsolidasi LC', 'Kavling': lcCount, color: '#f59e0b' },
+    { name: 'Overlap/Tumpang', 'Kavling': overlapCount, color: '#ef4444' }
+  ];
 
   // Bar Chart Data for Kecamatan
   const kecMap: { [key: string]: { total: number; sudah: number } } = {};
@@ -141,7 +167,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
         </div>
         <div className="flex items-center gap-2 bg-stone-50 px-4 py-2.5 rounded-full border border-stone-200 text-xs font-bold text-stone-700 shadow-xs">
           <MapPin className="h-4 w-4 text-orange-500" />
-          <span>Kabupaten Bima, NTB</span>
+          <span>Tambe-Bolo, Kabupaten Bima-NTB</span>
         </div>
       </div>
 
@@ -185,7 +211,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           </div>
           <div className="text-stone-400 text-[10px] font-black uppercase tracking-widest">Sedang Proses</div>
           <div className="text-3xl font-black font-display text-orange-600 mt-2">{sedangProsesCount}</div>
-          <div className="text-xs text-orange-600 font-bold mt-1">BPN Land Office</div>
+          <div className="text-xs text-orange-600 font-bold mt-1">Kantor Pertanahan</div>
         </div>
 
         {/* Belum Diajukan */}
@@ -211,7 +237,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           </div>
           <div className="text-stone-400 text-[10px] font-black uppercase tracking-widest">Tumpang Tindih</div>
           <div className="text-3xl font-black font-display text-red-600 mt-2">{overlapCount}</div>
-          <div className="text-xs text-red-600 font-bold mt-1">Perlu Verifikasi Batas</div>
+          <div className="text-xs text-red-600 font-bold mt-1">Perlu Verifikasi</div>
         </div>
       </div>
 
@@ -219,7 +245,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
       <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <Info className="h-5 w-5 text-blue-600" />
-          <h3 className="text-xs font-black text-stone-900 uppercase tracking-widest font-display">Transparansi Dokumen &amp; Sertipikat</h3>
+          <h3 className="text-xs font-black text-stone-900 uppercase tracking-widest font-display">Dokumen &amp; Sertipikat</h3>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
@@ -231,7 +257,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             <div className="text-xl font-black font-display text-blue-700">{skCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">SK Bupati</div>
             <div className="text-[10px] text-stone-500 mt-1">
-              <span className="text-green-600 font-bold">{skSudah} S</span> | <span className="text-orange-600 font-bold">{skProses} P</span>
+              <span className="text-green-600 font-bold">{skSudah} Sudah</span> | <span className="text-orange-600 font-bold">{skProses} Belum</span>
             </div>
           </div>
 
@@ -242,7 +268,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           >
             <div className="text-xl font-black font-display text-orange-700">{selisihSK}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Selisih SK</div>
-            <div className="text-[10px] text-stone-500 mt-1 font-bold">Target SK: {targetSK}</div>
+            <div className="text-[10px] text-stone-500 mt-1 font-bold">Dalam SK: {targetSK}</div>
           </div>
 
           {/* SHP Asal */}
@@ -251,8 +277,8 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-100 transition duration-200"
           >
             <div className="text-xl font-black font-display text-stone-800">{shpCount}</div>
-            <div className="text-xs font-bold text-stone-800 mt-1">SHP Asal</div>
-            <div className="text-[10px] text-stone-500 mt-1">Sertipikat Pakai</div>
+            <div className="text-xs font-bold text-stone-800 mt-1">Ada SHP</div>
+            <div className="text-[10px] text-stone-500 mt-1">Sertipikat Hak Pakai</div>
           </div>
 
           {/* SHM Asal */}
@@ -261,8 +287,8 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-100 transition duration-200"
           >
             <div className="text-xl font-black font-display text-stone-800">{shmCount}</div>
-            <div className="text-xs font-bold text-stone-800 mt-1">SHM Asal</div>
-            <div className="text-[10px] text-stone-500 mt-1">Hak Milik</div>
+            <div className="text-xs font-bold text-stone-800 mt-1">Ada SHM</div>
+            <div className="text-[10px] text-stone-500 mt-1">Sertipikat Hak Milik</div>
           </div>
 
           {/* Land Consolidation (LC) */}
@@ -271,8 +297,8 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 text-center cursor-pointer hover:bg-amber-100/50 transition duration-200"
           >
             <div className="text-xl font-black font-display text-amber-700">{lcCount}</div>
-            <div className="text-xs font-bold text-stone-800 mt-1">Konsolidasi LC</div>
-            <div className="text-[10px] text-stone-500 mt-1">Sertipikat LC</div>
+            <div className="text-xs font-bold text-stone-800 mt-1">Konsolidasi Tanah/LC</div>
+            <div className="text-[10px] text-stone-500 mt-1">Masuk Bidangan LC</div>
           </div>
 
           {/* Overlap / Tumpang Tindih */}
@@ -282,7 +308,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           >
             <div className="text-xl font-black font-display text-red-600">{overlapCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Overlap</div>
-            <div className="text-[10px] text-stone-500 mt-1">Mediasi Batas</div>
+            <div className="text-[10px] text-stone-500 mt-1">Mediasi</div>
           </div>
 
           {/* Belum Diajukan */}
@@ -292,7 +318,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           >
             <div className="text-xl font-black font-display text-stone-600">{belumAjukanCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Belum Ajukan</div>
-            <div className="text-[10px] text-stone-500 mt-1">Pendampingan</div>
+            <div className="text-[10px] text-stone-500 mt-1">Lengkapi berkas</div>
           </div>
         </div>
       </div>
@@ -305,7 +331,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             <h3 className="font-bold text-slate-800">Alur Pengajuan Sertipikasi Tanah Hunian Tetap</h3>
           </div>
           <div className="text-xs text-slate-500 flex items-center gap-1">
-            <HelpCircle className="h-3 w-3" /> Transparansi Layanan Kantor Pertanahan Bima
+            <HelpCircle className="h-3 w-3" />Layanan Kantor Pertanahan Kab. Bima
           </div>
         </div>
 
@@ -343,9 +369,9 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Status Distribution */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col justify-between">
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Status Sertipikat</h3>
             <div className="h-56">
@@ -376,12 +402,35 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           </div>
           <div className="bg-slate-50 p-3 rounded-2xl text-[10px] text-slate-500 flex items-start gap-1.5 mt-2">
             <Info className="h-3.5 w-3.5 text-pastel-blue shrink-0 mt-0.5" />
-            <span>Klik kategori di atas untuk memfilter rekapan data langsung sesuai status dokumen.</span>
+            <span>Warna status: Hijau (Sudah Terbit), Kuning (Sedang Proses), Merah (Belum Diajukan). Klik kategori untuk memfilter langsung.</span>
+          </div>
+        </div>
+
+        {/* Frekuensi Kendala Kategori */}
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
+          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Frekuensi Kendala Pertanahan</h3>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={kendalaChartData}>
+                <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} />
+                <YAxis stroke="#888888" fontSize={9} tickLine={false} />
+                <Tooltip formatter={(value) => [`${value} Kavling`, 'Kavling']} />
+                <Bar dataKey="Kavling" radius={[4, 4, 0, 0]}>
+                  {kendalaChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-2xl text-[10px] text-slate-500 flex items-start gap-1.5 mt-2">
+            <Info className="h-3.5 w-3.5 text-pastel-blue shrink-0 mt-0.5" />
+            <span>Menunjukkan jumlah kavling berdasarkan kendala alas hak asal (SHP, SHM, LC, Overlap/Tumpang Tindih).</span>
           </div>
         </div>
 
         {/* Kecamatan Sebaran */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs">
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Top 5 Sebaran Kecamatan</h3>
           <div className="h-56">
             {kecChartData.length > 0 ? (
@@ -392,7 +441,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
                   <Tooltip wrapperStyle={{ fontSize: '11px' }} />
                   <Legend iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
                   <Bar dataKey="Total Penerima" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Sertipikat Selesai" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Sertipikat Selesai" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -402,7 +451,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
         </div>
 
         {/* Blok Comparison */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs">
+        <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Per Blok: Total vs Sudah Sertipikat</h3>
           <div className="h-56">
             {blokChartData.length > 0 ? (
@@ -413,7 +462,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
                   <Tooltip wrapperStyle={{ fontSize: '11px' }} />
                   <Legend iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
                   <Bar dataKey="Total Kavling" fill="#f97316" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Sudah Sertipikat" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Sudah Sertipikat" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

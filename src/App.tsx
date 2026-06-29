@@ -114,7 +114,8 @@ export default function App() {
     }, (error) => {
       console.warn('Real-time Firestore subscription failed (offline mode):', error);
       setLoading(false);
-      handleFirestoreError(error, OperationType.LIST, 'huntap_data');
+      // Do not throw a fatal error when offline or if connection fails temporarily.
+      // This allows the app to operate seamlessly using local cached data.
     });
 
     const unsubLogs = onSnapshot(collection(db, 'audit_logs'), (snapshot) => {
@@ -138,8 +139,8 @@ export default function App() {
       setLogs(fetchedLogs);
       localStorage.setItem(LOCAL_LOG_KEY, JSON.stringify(fetchedLogs));
     }, (error) => {
-      console.warn('Real-time audit_logs subscription failed:', error);
-      handleFirestoreError(error, OperationType.LIST, 'audit_logs');
+      console.warn('Real-time audit_logs subscription failed (offline mode):', error);
+      // Do not throw a fatal error when offline or if connection fails temporarily.
     });
 
     return () => {

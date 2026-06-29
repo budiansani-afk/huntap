@@ -54,10 +54,11 @@ export default function ResidentTable({
     if (filterType && filterValue) {
       if (filterType === 'terimaSertipikat') {
         setSelStatus(filterValue);
+        setSearchQuery('');
       } else if (filterType === 'dokumenTanah') {
-        setSearchQuery(filterValue);
+        setSearchQuery('');
       } else if (filterType === 'keterangan') {
-        setSearchQuery(filterValue);
+        setSearchQuery('');
       } else if (filterType === 'belum-ajukan') {
         setSelStatus('Belum');
         setSearchQuery('');
@@ -84,10 +85,33 @@ export default function ResidentTable({
     return residents.filter(r => {
       // 1. Dashboard specific filters
       if (filterType === 'belum-ajukan' && filterValue === 'belum-ajukan') {
-        if (r.terimaSertipikat !== 'Belum') return false;
-        const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '')).toLowerCase();
-        const hasProgress = text.includes('proses') || text.includes('diajukan') || text.includes('ukur') || r.progressStep > 1;
-        if (hasProgress) return false;
+        const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+        const isBelum = r.terimaSertipikat === 'Belum';
+        const hasKendala =
+          text.includes('tumpang') ||
+          text.includes('tindih') ||
+          text.includes('overlap') ||
+          text.includes('shp') ||
+          text.includes('shm') ||
+          text.includes('lc');
+        if (!(isBelum && !hasKendala)) return false;
+      }
+
+      if (filterType === 'dokumenTanah' && filterValue) {
+        const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+        const val = filterValue.toLowerCase();
+        if (val === 'sk') {
+          const isSk = /\bsk\b/i.test(text) || (r.dokumenTanah || '').toLowerCase().includes('sk');
+          if (!isSk) return false;
+        } else {
+          if (!text.includes(val)) return false;
+        }
+      }
+
+      if (filterType === 'keterangan' && filterValue === 'tumpang') {
+        const text = ((r.dokumenTanah || '') + ' ' + (r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
+        const isOverlap = text.includes('tumpang') || text.includes('tindih') || text.includes('overlap') || text.includes('sengketa');
+        if (!isOverlap) return false;
       }
 
       // 2. Main Filters
@@ -108,7 +132,7 @@ export default function ResidentTable({
         const num = (r.nomorRumah || '').toLowerCase();
         const name = (r.nama || '').toLowerCase();
         const doc = (r.dokumenTanah || '').toLowerCase();
-        const ket = (r.keterangan || '').toLowerCase();
+        const ket = ((r.keterangan || '') + ' ' + (r.catatanPetugas || '')).toLowerCase();
         const nikVal = (r.nik || '').toLowerCase();
         
         return num.includes(query) || name.includes(query) || doc.includes(query) || ket.includes(query) || nikVal.includes(query);
@@ -343,6 +367,7 @@ export default function ResidentTable({
                 <th className="py-4 px-4 font-black text-[10px]">Nama Penerima / KK</th>
                 <th className="py-4 px-4 font-black text-[10px]">Wilayah / Desa</th>
                 <th className="py-4 px-4 font-black text-[10px]">Alas Hak / Dokumen Asal</th>
+                <th className="py-4 px-4 font-black text-[10px]">Keterangan/Catatan</th>
                 <th className="py-4 px-4 font-black text-center text-[10px]">Luas</th>
                 <th className="py-4 px-4 font-black text-center text-[10px]">Status Sertipikat</th>
                 <th className="py-4 px-4 font-black text-center text-[10px]">Alur BPN</th>
@@ -355,11 +380,13 @@ export default function ResidentTable({
                   const itemIndex = (currentPage - 1) * itemsPerPage + index + 1;
                   
                   // Style configurations
-                  let statusBadgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                  let statusBadgeColor = 'bg-red-50 text-red-700 border-red-200';
                   if (item.terimaSertipikat === 'Sudah') {
-                    statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'; // Green
                   } else if (item.terimaSertipikat === 'Sedang Proses') {
-                    statusBadgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
+                    statusBadgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200'; // Yellow
+                  } else if (item.terimaSertipikat === 'Belum') {
+                    statusBadgeColor = 'bg-red-50 text-red-700 border-red-200'; // Red
                   }
 
                   return (
@@ -379,6 +406,9 @@ export default function ResidentTable({
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-stone-600 max-w-[150px] truncate" title={item.dokumenTanah}>
                         {item.dokumenTanah}
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-stone-500 max-w-[150px] truncate" title={item.catatanPetugas || item.keterangan || ''}>
+                        {item.catatanPetugas || item.keterangan || '-'}
                       </td>
                       <td className="py-3.5 px-4 text-center font-bold text-stone-800">{item.luas ? `${item.luas} m²` : '-'}</td>
                       <td className="py-3.5 px-4 text-center">
@@ -437,7 +467,7 @@ export default function ResidentTable({
                 })
               ) : (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 font-semibold">
+                  <td colSpan={10} className="py-12 text-center text-slate-400 font-semibold">
                     Tidak ada data penerima bantuan huntap yang sesuai filter
                   </td>
                 </tr>
