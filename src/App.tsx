@@ -124,7 +124,17 @@ export default function App() {
       });
 
       // Sort descending by timestamp
-      fetchedLogs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+      fetchedLogs.sort((a, b) => {
+        const getMs = (val: any) => {
+          if (!val) return 0;
+          if (typeof val === 'string') return new Date(val).getTime();
+          if (typeof val.toMillis === 'function') return val.toMillis();
+          if (typeof val.toDate === 'function') return val.toDate().getTime();
+          if (val.seconds !== undefined) return val.seconds * 1000;
+          return new Date(String(val)).getTime() || 0;
+        };
+        return getMs(b.timestamp) - getMs(a.timestamp);
+      });
       setLogs(fetchedLogs);
       localStorage.setItem(LOCAL_LOG_KEY, JSON.stringify(fetchedLogs));
     }, (error) => {
@@ -457,7 +467,7 @@ export default function App() {
             {/* Logo TAMBE HUB */}
             <div className="p-4 bg-stone-50 rounded-2xl border border-stone-100 inline-block mb-2">
               <h1 className="text-3xl font-black tracking-tighter text-blue-600 leading-none mb-1">
-                TAMBE<span className="text-orange-500 underline decoration-yellow-400">HUB</span>
+                HUNIAN<span className="text-orange-500 underline decoration-yellow-400">TAMBE</span>
               </h1>
               <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">Portal Data Hunian</p>
             </div>
@@ -474,7 +484,7 @@ export default function App() {
                 <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Nama Pengguna (Username)</label>
                 <input 
                   type="text" 
-                  placeholder="Contoh: admin, bpn_staff, warga123" 
+                  placeholder="Contoh: admin, staff, warga123" 
                   value={loginUsername}
                   onChange={(e) => setLoginUsername(e.target.value)}
                   className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-sm font-semibold focus:bg-white"
@@ -502,18 +512,18 @@ export default function App() {
                     className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-xs font-bold focus:bg-white cursor-pointer"
                   >
                     <option value="Admin">Administrator</option>
-                    <option value="Kantor Pertanahan">Kantor Pertanahan (BPN)</option>
-                    <option value="Surveyor">Surveyor Lapangan</option>
-                    <option value="Warga">Warga Penerima Huntap</option>
+                    <option value="Kantor Pertanahan">Operator</option>
+                    <option value="Surveyor">Surveyor</option>
+                    <option value="Warga">Warga/Tamu</option>
                   </select>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">NIK (Khusus Warga)</label>
+                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">NIK (Khusus Warga/Tamu)</label>
                   <input 
                     type="text" 
                     maxLength={16}
-                    placeholder="Wajib jika Role = Warga"
+                    placeholder="Wajib Role = Warga"
                     value={loginNik}
                     onChange={(e) => setLoginNik(e.target.value.replace(/\D/g, ''))}
                     className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-xs font-mono tracking-wider focus:bg-white"
@@ -530,7 +540,7 @@ export default function App() {
             </form>
 
             <div className="text-[10px] text-stone-400 font-bold border-t border-stone-100 pt-3 uppercase tracking-wider">
-              Kementerian Agraria dan Tata Ruang / BPN Bima &copy; 2026
+              Dinas PKP Kab. Bima / Bidang Pertanahan &copy; 2026
             </div>
           </div>
         </div>
@@ -546,9 +556,9 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <div className="text-left">
                   <h1 className="text-2xl font-black tracking-tighter text-blue-600 leading-none mb-0.5">
-                    TAMBE<span className="text-orange-500 underline decoration-yellow-400">HUB</span>
+                    HUNIAN<span className="text-orange-500 underline decoration-yellow-400">TAMBE</span>
                   </h1>
-                  <span className="text-[9px] text-stone-400 font-extrabold uppercase tracking-widest block">Portal Data &amp; Sertipikasi Huntap Bima</span>
+                  <span className="text-[9px] text-stone-400 font-extrabold uppercase tracking-widest block">Portal Data &amp; Sertipikasi Huntap Tambe</span>
                 </div>
               </div>
 
@@ -706,11 +716,11 @@ export default function App() {
       {/* Persistent Elegant Footer */}
       <footer className="bg-white border-t border-slate-100 py-6 px-6 text-center text-xs text-slate-400 font-bold">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span>Portal Pelayanan Pertanahan Kab. Bima &copy; {new Date().getFullYear()}</span>
+          <span>Bidang Pertanahan&copy; {new Date().getFullYear()}</span>
           <div className="flex items-center gap-4 text-[11px] text-slate-400">
-            <span>Kantor BPN Bima</span>
+            <span>Pemerintah Kabupaten Bima</span>
             <span>&bull;</span>
-            <span>Dinas Perkim Kab. Bima</span>
+            <span>Dinas Perumahan dan Kawasan Permukiman</span>
           </div>
         </div>
       </footer>

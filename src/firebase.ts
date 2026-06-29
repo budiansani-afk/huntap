@@ -7,21 +7,13 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { initializeFirestore, getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// Firebase Config loaded from provisioned workspace config
-const firebaseConfig = {
-  apiKey: "AIzaSyD6BrNv4781pN2njsrDoA9OtaKrkxeysBQ",
-  authDomain: "aerobic-strength-lk8sk.firebaseapp.com",
-  projectId: "aerobic-strength-lk8sk",
-  storageBucket: "aerobic-strength-lk8sk.firebasestorage.app",
-  messagingSenderId: "703367530446",
-  appId: "1:703367530446:web:6dc0ab0caa7a6549bfcd9f"
-};
+import firebaseConfig from '../firebase-applet-config.json';
 
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firestore with specific database ID if applicable, else default
-const db = getFirestore(app, "ai-studio-5ff08e2d-571f-448f-a9f7-f6013a430fad");
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 const storage = getStorage(app);
 
