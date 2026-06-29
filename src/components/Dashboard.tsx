@@ -38,8 +38,16 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
   const skBelum = skCount - skSudah;
   const skProses = skData.filter(r => r.terimaSertipikat === 'Sedang Proses').length;
   
+  // Calculate count of residents whose description/notes contain the word 'SK' and status is 'Belum'
+  const belumSKKeteranganCount = residents.filter(r => {
+    const text = ((r.keterangan || '') + ' ' + (r.catatanPetugas || '') + ' ' + (r.dokumenTanah || '')).toLowerCase();
+    return text.includes('sk') && r.terimaSertipikat === 'Belum';
+  }).length;
+
   // Naming Target target of SK (standard list)
   const targetSK = 174;
+
+  const belumSKCount = Math.max(0, residents.length - targetSK);
   const selisihSK = Math.max(0, targetSK - skCount);
 
   const shpData = residents.filter(r => {
@@ -267,8 +275,9 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 text-center cursor-pointer hover:bg-orange-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-orange-700">{selisihSK}</div>
-            <div className="text-xs font-bold text-stone-800 mt-1">Selisih SK</div>
+            <div className="text-xs font-bold text-stone-800 mt-1">Perlu Singkron SK</div>
             <div className="text-[10px] text-stone-500 mt-1 font-bold">Dalam SK: {targetSK}</div>
+            <div className="text-[10px] text-orange-600 mt-0.5 font-bold">Belum SK: {belumSKCount}</div>
           </div>
 
           {/* SHP Asal */}
@@ -470,6 +479,24 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
               <div className="h-full flex items-center justify-center text-slate-400 text-xs">Belum ada data</div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Bottom Summary Banner */}
+      <div className="bg-orange-50 border border-orange-200 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="p-2.5 bg-orange-100 text-orange-700 rounded-2xl shrink-0">
+            <Award className="h-5 w-5" />
+          </span>
+          <div>
+            <h4 className="font-extrabold text-stone-900 text-xs uppercase tracking-wider">Status Kelengkapan SK Penerima</h4>
+            <p className="text-xs text-stone-600 mt-1">
+              Data penghuni terdaftar yang belum masuk dalam daftar SK Bupati (Hasil dari jumlah seluruh hunian terdaftar dikurangi kuota dalam SK).
+            </p>
+          </div>
+        </div>
+        <div className="bg-orange-600 text-white px-5 py-2.5 rounded-full text-xs font-black shrink-0 shadow-sm">
+          Belum SK: {belumSKCount}
         </div>
       </div>
     </div>
