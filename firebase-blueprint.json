@@ -1,0 +1,64 @@
+{
+  "entities": {
+    "Resident": {
+      "title": "Resident",
+      "description": "Resident or Hunian Tetap information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nomorRumah": { "type": "string" },
+        "nama": { "type": "string" },
+        "nik": { "type": "string" },
+        "noKk": { "type": "string" },
+        "desa": { "type": "string" },
+        "kecamatan": { "type": "string" },
+        "luas": { "type": "number" },
+        "dokumenTanah": { "type": "string" },
+        "terimaSertipikat": { "type": "string", "enum": ["Sudah", "Belum", "Sedang Proses"] },
+        "noHp": { "type": "string" },
+        "koordinat": { "type": "string" },
+        "fotoRumah": { "type": "string" },
+        "fotoKtpKk": { "type": "string" },
+        "unggahDokTanah": { "type": "string" },
+        "fotoShm": { "type": "string" },
+        "progressStep": { "type": "number" },
+        "lastUpdated": { "type": "string" },
+        "updatedBy": { "type": "string" },
+        "catatanPetugas": { "type": "string" },
+        "keterangan": { "type": "string" }
+      },
+      "required": ["id", "nomorRumah", "nama", "nik", "noKk", "desa", "kecamatan", "luas", "dokumenTanah", "terimaSertipikat", "noHp", "koordinat", "progressStep", "lastUpdated", "updatedBy"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System audit log for track changes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "jam": { "type": "string" },
+        "pengguna": { "type": "string" },
+        "role": { "type": "string" },
+        "aktivitas": { "type": "string" },
+        "nomorRumah": { "type": "string" },
+        "namaPenerima": { "type": "string" },
+        "keterangan": { "type": "string" },
+        "dataSebelum": { "type": "string" },
+        "dataSesudah": { "type": "string" },
+        "status": { "type": "string", "enum": ["Berhasil", "Gagal"] },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "tanggal", "jam", "pengguna", "role", "aktivitas", "nomorRumah", "namaPenerima", "keterangan", "status", "timestamp"]
+    }
+  },
+  "firestore": {
+    "huntap_data/{residentId}": {
+      "schema": "Resident",
+      "description": "Hunian Tetap residents database"
+    },
+    "audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit trail for system events"
+    }
+  }
+}

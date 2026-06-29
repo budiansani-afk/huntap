@@ -1,0 +1,6 @@
+{
+  "name": "Huntap Kabupaten Bima",
+  "description": "Sistem Informasi Pendataan Hunian Tetap Kabupaten Bima terintegrasi dengan Firebase, Cloudinary, dan Kantor Pertanahan (BPN) untuk transparansi proses sertipikasi tanah.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

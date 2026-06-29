@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  /* Bold Typography Theme Palette (Stone, Deep Vibrant Blue, Vibrant Orange, Vibrant Yellow, Deep Charcoal Grays) */
+  --color-stone-50: #f5f5f4;
+  --color-stone-100: #e7e5e4;
+  --color-stone-200: #d6d3d1;
+  --color-stone-300: #a8a29e;
+  --color-stone-400: #78716c;
+  --color-stone-500: #57534e;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+
+  --color-pastel-blue-dark: #1e3a8a;
+  --color-pastel-blue: #2563eb;
+  --color-pastel-blue-light: #eff6ff;
+  
+  --color-pastel-orange-dark: #c2410c;
+  --color-pastel-orange: #ea580c;
+  --color-pastel-orange-light: #fff7ed;
+  
+  --color-pastel-yellow-dark: #854d0e;
+  --color-pastel-yellow: #ca8a04;
+  --color-pastel-yellow-light: #fefce8;
+  
+  --color-pastel-brown-dark: #78350f;
+  --color-pastel-brown: #b45309;
+  --color-pastel-brown-light: #fafaf9;
+  --color-pastel-brown-bg: #f5f5f4;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f5f5f4; /* stone-50 */
+  color: #292524; /* stone-800 */
+}
+
+/* Beautiful custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}
+
+/* Custom animation effects */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.33);
+  }
+  80%, 100% {
+    opacity: 0;
+  }
+}
+
+.map-pulsing-marker {
+  position: relative;
+}
+
+/* Clear focus styles */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Document pipeline progress styles */
+.progress-connector {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: #e7e5e4;
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+.progress-connector-active {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 4px;
+  background-color: #3b82f6;
+  transform: translateY(-50%);
+  z-index: 0;
+  transition: width 0.5s ease-in-out;
+}
