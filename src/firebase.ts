@@ -12,8 +12,10 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with specific database ID if applicable, else default
-const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with specific database ID if applicable, else default, and enable long-polling
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, firebaseConfig.firestoreDatabaseId);
 
 const storage = getStorage(app);
 

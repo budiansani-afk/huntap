@@ -35,7 +35,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
   });
   const skCount = skData.length;
   const skSudah = skData.filter(r => r.terimaSertipikat === 'Sudah').length;
-  const skBelum = skData.filter(r => r.terimaSertipikat === 'Belum').length;
+  const skBelum = skCount - skSudah;
   const skProses = skData.filter(r => r.terimaSertipikat === 'Sedang Proses').length;
   
   // Naming Target target of SK (standard list)
@@ -252,19 +252,19 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           {/* SK Bupati */}
           <div 
             onClick={() => handleCardClick('dokumenTanah', 'SK')}
-            className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 text-center cursor-pointer hover:bg-blue-50 transition duration-200"
+            className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 text-center cursor-pointer hover:bg-blue-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-blue-700">{skCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">SK Bupati</div>
             <div className="text-[10px] text-stone-500 mt-1">
-              <span className="text-green-600 font-bold">{skSudah} Sudah</span> | <span className="text-orange-600 font-bold">{skProses} Belum</span>
+              <span className="text-green-600 font-bold">{skSudah} Sudah</span> | <span className="text-orange-600 font-bold">{skBelum} Belum</span>
             </div>
           </div>
 
           {/* Selisih SK target */}
           <div 
             onClick={() => handleCardClick('dokumenTanah', 'SK')}
-            className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 text-center cursor-pointer hover:bg-orange-50 transition duration-200"
+            className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 text-center cursor-pointer hover:bg-orange-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-orange-700">{selisihSK}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Selisih SK</div>
@@ -274,7 +274,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           {/* SHP Asal */}
           <div 
             onClick={() => handleCardClick('dokumenTanah', 'SHP')}
-            className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-100 transition duration-200"
+            className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-stone-800">{shpCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Ada SHP</div>
@@ -284,7 +284,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           {/* SHM Asal */}
           <div 
             onClick={() => handleCardClick('dokumenTanah', 'SHM')}
-            className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-100 transition duration-200"
+            className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-stone-800">{shmCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Ada SHM</div>
@@ -294,7 +294,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           {/* Land Consolidation (LC) */}
           <div 
             onClick={() => handleCardClick('dokumenTanah', 'LC')}
-            className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 text-center cursor-pointer hover:bg-amber-100/50 transition duration-200"
+            className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 text-center cursor-pointer hover:bg-amber-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-amber-700">{lcCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Konsolidasi Tanah/LC</div>
@@ -304,7 +304,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           {/* Overlap / Tumpang Tindih */}
           <div 
             onClick={() => handleCardClick('keterangan', 'tumpang')}
-            className="bg-rose-50/60 p-4 rounded-2xl border border-rose-100 text-center cursor-pointer hover:bg-rose-100/50 transition duration-200"
+            className="bg-rose-50/60 p-4 rounded-2xl border border-rose-100 text-center cursor-pointer hover:bg-rose-100 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-red-600">{overlapCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Overlap</div>
@@ -314,7 +314,7 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           {/* Belum Diajukan */}
           <div 
             onClick={() => handleCardClick('belum-ajukan', 'belum-ajukan')}
-            className="bg-stone-100 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-200 transition duration-200"
+            className="bg-stone-100 p-4 rounded-2xl border border-stone-200 text-center cursor-pointer hover:bg-stone-200 hover:scale-[1.03] hover:shadow-xs active:scale-[0.97] transition duration-200"
           >
             <div className="text-xl font-black font-display text-stone-600">{belumAjukanCount}</div>
             <div className="text-xs font-bold text-stone-800 mt-1">Belum Ajukan</div>
@@ -342,7 +342,8 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
             return (
               <div 
                 key={stepItem.step} 
-                className="bg-pastel-brown-light/40 p-4 rounded-2xl border border-amber-50 relative flex flex-col justify-between hover:scale-[1.02] transition duration-200"
+                onClick={() => handleCardClick('progressStep', stepItem.step.toString())}
+                className="bg-pastel-brown-light/40 p-4 rounded-2xl border border-amber-50 relative flex flex-col justify-between cursor-pointer hover:scale-[1.02] hover:bg-amber-100/30 hover:border-amber-200 hover:shadow-sm active:scale-[0.98] transition duration-200"
               >
                 <div>
                   <div className="flex justify-between items-start mb-2">

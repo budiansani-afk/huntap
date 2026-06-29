@@ -44,9 +44,9 @@ export default function LandOfficePanel({
   const [newNama, setNewNama] = useState(currentUser.namaLengkap);
   const [newNik, setNewNik] = useState(currentUser.nik || '');
   const [newNoKk, setNewNoKk] = useState('');
-  const [newDesa, setNewDesa] = useState('Tambe');
+  const [newDesa, setNewDesa] = useState('');
   const [newLuas, setNewLuas] = useState<number | ''>('');
-  const [newDokumenTanah, setNewDokumenTanah] = useState('SK Bupati No. 188/2021');
+  const [newDokumenTanah, setNewDokumenTanah] = useState('');
   const [newNoHp, setNewNoHp] = useState('');
   const [newKoordinat, setNewKoordinat] = useState('');
   const [newFotoRumah, setNewFotoRumah] = useState('');
@@ -99,7 +99,9 @@ export default function LandOfficePanel({
       // Reset form
       setNewNomorRumah('');
       setNewNoKk('');
+      setNewDesa('');
       setNewLuas('');
+      setNewDokumenTanah('');
       setNewNoHp('');
       setNewKoordinat('');
       setNewFotoRumah('');

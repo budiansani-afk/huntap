@@ -43,25 +43,43 @@ export default function ResidentTable({
   const [selDesa, setSelDesa] = useState('');
   const [selStatus, setSelStatus] = useState('');
   const [selBlok, setSelBlok] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   // Detail Modal State
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
 
   // Synchronize dashboard clicked filters
   React.useEffect(() => {
-    if (filterType && filterValue) {
-      if (filterType === 'terimaSertipikat') {
-        setSelStatus(filterValue);
+    if (filterType) {
+      if (filterType === 'all') {
+        setSelStatus('');
+        setSelKecamatan('');
+        setSelDesa('');
+        setSelBlok('');
         setSearchQuery('');
-      } else if (filterType === 'dokumenTanah') {
+      } else if (filterType && filterValue) {
         setSearchQuery('');
-      } else if (filterType === 'keterangan') {
-        setSearchQuery('');
-      } else if (filterType === 'belum-ajukan') {
-        setSelStatus('Belum');
-        setSearchQuery('');
+        setSelBlok('');
+        if (filterType === 'terimaSertipikat') {
+          setSelStatus(filterValue);
+          setSelKecamatan('');
+          setSelDesa('');
+        } else if (filterType === 'dokumenTanah') {
+          setSelStatus('');
+          setSelKecamatan('');
+          setSelDesa('');
+        } else if (filterType === 'keterangan') {
+          setSelStatus('');
+          setSelKecamatan('');
+          setSelDesa('');
+        } else if (filterType === 'belum-ajukan') {
+          setSelStatus('Belum');
+          setSelKecamatan('');
+          setSelDesa('');
+        } else if (filterType === 'progressStep') {
+          setSelStatus('');
+          setSelKecamatan('');
+          setSelDesa('');
+        }
       }
     }
   }, [filterType, filterValue]);
@@ -114,6 +132,10 @@ export default function ResidentTable({
         if (!isOverlap) return false;
       }
 
+      if (filterType === 'progressStep' && filterValue) {
+        if (r.progressStep !== Number(filterValue)) return false;
+      }
+
       // 2. Main Filters
       if (selKecamatan && r.kecamatan !== selKecamatan) return false;
       if (selDesa && r.desa !== selDesa) return false;
@@ -142,22 +164,12 @@ export default function ResidentTable({
     });
   }, [residents, selKecamatan, selDesa, selStatus, selBlok, searchQuery, filterType, filterValue]);
 
-  // Pagination Logic
-  const totalItems = filteredResidents.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  
-  const paginatedResidents = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filteredResidents.slice(start, start + itemsPerPage);
-  }, [filteredResidents, currentPage]);
-
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelKecamatan('');
     setSelDesa('');
     setSelStatus('');
     setSelBlok('');
-    setCurrentPage(1);
     onClearFilter();
   };
 
@@ -188,18 +200,19 @@ export default function ResidentTable({
           return {
             id: `imported-${Date.now()}-${idx}`,
             nomorRumah: numHouse.toString().toUpperCase(),
-            nama: row['Nama Kepala Keluarga'] || row['Nama'] || 'Nama Penduduk',
+            nama: row['Nama Kepala Keluarga'] || row['Nama'] || '',
             nik: (row['NIK'] || '').toString(),
             noKk: (row['No KK'] || row['Nomor KK'] || '').toString(),
-            desa: row['Desa'] || row['Desa Asal'] || 'Tambe',
-            kecamatan: row['Kecamatan'] || row['Kecamatan Asal'] || 'Bolo',
-            luas: Number(row['Luas'] || row['Luas (m2)'] || 120),
-            dokumenTanah: row['Alas Hak'] || row['Dokumen Tanah Asal'] || 'SK Bupati No. 188/2021',
+            desa: row['Desa'] || row['Desa Asal'] || '',
+            kecamatan: row['Kecamatan'] || row['Kecamatan Asal'] || '',
+            luas: Number(row['Luas'] || row['Luas (m2)'] || 0),
+            dokumenTanah: row['Alas Hak'] || row['Dokumen Tanah Asal'] || '',
             terimaSertipikat: status,
             noHp: (row['No HP'] || row['Nomor HP'] || '').toString(),
             koordinat: row['Koordinat'] || row['Google Maps'] || '',
             progressStep: status === 'Sudah' ? 5 : (status === 'Sedang Proses' ? 3 : 1),
-            catatanPetugas: row['Catatan'] || row['Keterangan'] || '',
+            catatanPetugas: row['Catatan Petugas'] || row['Catatan petugas'] || row['catatan petugas'] || row['Catatan'] || row['Keterangan'] || '',
+            keterangan: row['Catatan Petugas'] || row['Catatan petugas'] || row['catatan petugas'] || row['Catatan'] || row['Keterangan'] || '',
             lastUpdated: new Date().toISOString(),
             updatedBy: 'Sistem Import'
           };
@@ -240,6 +253,29 @@ export default function ResidentTable({
 
   return (
     <div className="space-y-4 font-sans">
+      {filterType && filterType !== 'all' && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm animate-in slide-in-from-top duration-200">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-blue-600 shrink-0 animate-pulse" />
+            <div className="text-xs font-semibold text-stone-700">
+              <span className="font-extrabold text-blue-800">Filter Dashboard Aktif:</span>{' '}
+              {filterType === 'dokumenTanah' && `Alas Hak / Dokumen Tanah "${filterValue}"`}
+              {filterType === 'terimaSertipikat' && `Status Penerimaan Sertipikat "${filterValue}"`}
+              {filterType === 'keterangan' && filterValue === 'tumpang' && `Kategori Kendala "Tumpang Tindih / Overlap"`}
+              {filterType === 'belum-ajukan' && `Kategori "Belum Mengajukan (Kavling Kosong / Tanpa Kendala)"`}
+              {filterType === 'progressStep' && `Proses BPN Tahap ${filterValue}: ${CERTIFICATION_STEPS.find(s => s.step.toString() === filterValue)?.label || ''}`}
+              {' '}<span className="text-stone-500 font-bold">({filteredResidents.length} dari {residents.length} penerima ditemukan)</span>
+            </div>
+          </div>
+          <button
+            onClick={handleResetFilters}
+            className="px-4 py-1 bg-white hover:bg-blue-100 border border-blue-200 rounded-full text-[10px] font-black uppercase tracking-wider text-blue-700 transition cursor-pointer"
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
+
       {/* Search & Filters Card */}
       <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-4">
         {/* Row 1: Search and Main Actions */}
@@ -250,7 +286,7 @@ export default function ResidentTable({
               type="text" 
               placeholder="Cari berdasarkan nama, No. Rumah, atau dokumen..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setSearchQuery(e.target.value); }}
               className="w-full pl-10 pr-4 py-2.5 rounded-full border border-stone-200 bg-stone-50 text-stone-800 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100"
             />
             {searchQuery && (
@@ -293,7 +329,7 @@ export default function ResidentTable({
             <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Kecamatan</label>
             <select 
               value={selKecamatan}
-              onChange={(e) => { setSelKecamatan(e.target.value); setSelDesa(''); setCurrentPage(1); }}
+              onChange={(e) => { setSelKecamatan(e.target.value); setSelDesa(''); }}
               className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-blue-100"
             >
               <option value="">Semua Kecamatan</option>
@@ -305,7 +341,7 @@ export default function ResidentTable({
             <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Desa</label>
             <select 
               value={selDesa}
-              onChange={(e) => { setSelDesa(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setSelDesa(e.target.value); }}
               className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-blue-100"
             >
               <option value="">Semua Desa</option>
@@ -317,7 +353,7 @@ export default function ResidentTable({
             <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Status Sertipikat</label>
             <select 
               value={selStatus}
-              onChange={(e) => { setSelStatus(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setSelStatus(e.target.value); }}
               className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-blue-100"
             >
               <option value="">Semua Status</option>
@@ -331,7 +367,7 @@ export default function ResidentTable({
             <label className="text-[10px] font-black text-stone-500 uppercase tracking-widest">Blok Kavling</label>
             <select 
               value={selBlok}
-              onChange={(e) => { setSelBlok(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => { setSelBlok(e.target.value); }}
               className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-blue-100"
             >
               <option value="">Semua Blok</option>
@@ -358,26 +394,26 @@ export default function ResidentTable({
 
       {/* Main Table Card */}
       <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[600px]">
           <table className="w-full border-collapse text-left text-xs text-stone-600">
-            <thead>
+            <thead className="sticky top-0 bg-stone-50 z-10 shadow-[0_1px_0_0_rgba(120,113,108,0.15)]">
               <tr className="bg-stone-50 border-b border-stone-200 text-stone-900 font-extrabold font-display uppercase tracking-wider">
-                <th className="py-4 px-4 font-black text-center w-12 text-[10px]">No</th>
-                <th className="py-4 px-4 font-black text-center text-[10px]">Unit Huntap</th>
-                <th className="py-4 px-4 font-black text-[10px]">Nama Penerima / KK</th>
-                <th className="py-4 px-4 font-black text-[10px]">Wilayah / Desa</th>
-                <th className="py-4 px-4 font-black text-[10px]">Alas Hak / Dokumen Asal</th>
-                <th className="py-4 px-4 font-black text-[10px]">Keterangan/Catatan</th>
-                <th className="py-4 px-4 font-black text-center text-[10px]">Luas</th>
-                <th className="py-4 px-4 font-black text-center text-[10px]">Status Sertipikat</th>
-                <th className="py-4 px-4 font-black text-center text-[10px]">Alur BPN</th>
-                <th className="py-4 px-4 font-black text-center text-[10px]">Aksi</th>
+                <th className="py-4 px-4 font-black text-center w-12 text-[10px] bg-stone-50">No</th>
+                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Unit Huntap</th>
+                <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Nama Penerima / KK</th>
+                <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Wilayah / Desa</th>
+                <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Alas Hak / Dokumen Asal</th>
+                <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Keterangan/Catatan</th>
+                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Luas</th>
+                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Status Sertipikat</th>
+                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Alur BPN</th>
+                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {paginatedResidents.length > 0 ? (
-                paginatedResidents.map((item, index) => {
-                  const itemIndex = (currentPage - 1) * itemsPerPage + index + 1;
+              {filteredResidents.length > 0 ? (
+                filteredResidents.map((item, index) => {
+                  const itemIndex = index + 1;
                   
                   // Style configurations
                   let statusBadgeColor = 'bg-red-50 text-red-700 border-red-200';
@@ -476,30 +512,10 @@ export default function ResidentTable({
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Info Footer */}
         <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50">
           <div className="text-xs text-slate-500 font-medium">
-            Menampilkan <span className="font-extrabold text-slate-800">{Math.min(filteredResidents.length, itemsPerPage)}</span> dari <span className="font-extrabold text-slate-800">{totalItems}</span> kavling hunian
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none transition"
-            >
-              <ChevronLeft className="h-3.5 w-3.5 text-slate-600" />
-            </button>
-            <span className="text-xs font-bold text-slate-700">
-              Halaman {currentPage} dari {totalPages}
-            </span>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none transition"
-            >
-              <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-            </button>
+            Menampilkan <span className="font-extrabold text-slate-800">{filteredResidents.length}</span> kavling hunian (skrol ke bawah untuk data lainnya)
           </div>
         </div>
       </div>

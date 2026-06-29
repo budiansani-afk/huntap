@@ -23,10 +23,10 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
   const [nama, setNama] = useState('');
   const [nik, setNik] = useState('');
   const [noKk, setNoKk] = useState('');
-  const [desa, setDesa] = useState('Tambe');
-  const [kecamatan, setKecamatan] = useState('Bolo');
+  const [desa, setDesa] = useState('');
+  const [kecamatan, setKecamatan] = useState('');
   const [luas, setLuas] = useState<number | ''>('');
-  const [dokumenTanah, setDokumenTanah] = useState('SK Bupati No. 188/2021');
+  const [dokumenTanah, setDokumenTanah] = useState('');
   const [terimaSertipikat, setTerimaSertipikat] = useState<'Sudah' | 'Belum' | 'Sedang Proses'>('Belum');
   const [noHp, setNoHp] = useState('');
   const [koordinat, setKoordinat] = useState('');
@@ -78,10 +78,10 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
     setNama('');
     setNik('');
     setNoKk('');
-    setDesa('Tambe');
-    setKecamatan('Bolo');
+    setDesa('');
+    setKecamatan('');
     setLuas('');
-    setDokumenTanah('SK Bupati No. 188/2021');
+    setDokumenTanah('');
     setTerimaSertipikat('Belum');
     setNoHp('');
     setKoordinat('');
@@ -294,6 +294,7 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
                 onChange={(e) => setKecamatan(e.target.value)}
                 className="px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-sm font-semibold"
               >
+                <option value="">-- Pilih Kecamatan --</option>
                 <option value="Bolo">Bolo</option>
                 <option value="Wawo">Wawo</option>
                 <option value="Donggo">Donggo</option>

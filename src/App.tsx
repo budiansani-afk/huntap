@@ -11,7 +11,6 @@ import {
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, addDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from './firebase';
 import { Resident, AuditLog, AppUser, UserRole } from './types';
-import { INITIAL_RESIDENTS } from './data';
 import Dashboard from './components/Dashboard';
 import ResidentForm from './components/ResidentForm';
 import ResidentTable from './components/ResidentTable';
@@ -86,28 +85,8 @@ export default function App() {
         fetched.push({ id: doc.id, ...doc.data() } as Resident);
       });
 
-      // Seeding: If Firestore is empty, seed it with default data
-      if (fetched.length === 0) {
-        setSyncing(true);
-        try {
-          for (const res of INITIAL_RESIDENTS) {
-            try {
-              await setDoc(doc(db, 'huntap_data', res.id), res);
-            } catch (err) {
-              handleFirestoreError(err, OperationType.WRITE, `huntap_data/${res.id}`);
-            }
-          }
-          fetched = [...INITIAL_RESIDENTS];
-        } catch (e) {
-          console.warn('Gagal melakukan seeding default data ke Firestore:', e);
-          fetched = [...INITIAL_RESIDENTS];
-        } finally {
-          setSyncing(false);
-        }
-      }
-
-      // Sort residents by Nomor Rumah
-      fetched.sort((a, b) => a.nomorRumah.localeCompare(b.nomorRumah));
+      // Sort residents by Nomor Rumah if available
+      fetched.sort((a, b) => (a.nomorRumah || '').localeCompare(b.nomorRumah || ''));
       setResidents(fetched);
       localStorage.setItem(LOCAL_RES_KEY, JSON.stringify(fetched));
       setLoading(false);
@@ -696,6 +675,8 @@ export default function App() {
                   residents={residents} 
                   locateResident={locateResident} 
                   onClearLocate={() => setLocateResident(null)}
+                  onEdit={handleTriggerEdit}
+                  currentUserRole={currentUser.role}
                 />
               )}
 
