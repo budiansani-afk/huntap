@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, FileText, Table, History, Map, ShieldCheck, LogIn, LogOut, 
-  User, Sparkles, Building, Loader2, CloudLightning, RefreshCw, Layers 
+  User, Sparkles, Building, Loader2, CloudLightning, RefreshCw, Layers,
+  AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, addDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from './firebase';
@@ -17,6 +18,7 @@ import ResidentTable from './components/ResidentTable';
 import LogRiwayat from './components/LogRiwayat';
 import PetaSebaran from './components/PetaSebaran';
 import LandOfficePanel from './components/LandOfficePanel';
+import PengaturanAkun from './components/PengaturanAkun';
 
 const LOCAL_RES_KEY = 'huntap_residents_cache';
 const LOCAL_LOG_KEY = 'huntap_logs_cache';
@@ -39,9 +41,12 @@ export default function App() {
   
   // Login form inputs
   const [loginUsername, setLoginUsername] = useState('');
-  const [loginRole, setLoginRole] = useState<UserRole>('Admin');
-  const [loginNik, setLoginNik] = useState('');
-  const [loginFullName, setLoginFullName] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  // Real-time App Users list
+  const [appUsers, setAppUsers] = useState<AppUser[]>([]);
 
   // Dashboard filter pass state
   const [passFilterType, setPassFilterType] = useState('');
@@ -128,6 +133,38 @@ export default function App() {
     };
   }, []);
 
+  // 2b. Fetch and Seed Users from Firestore
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'app_users'), async (snapshot) => {
+      const fetched: AppUser[] = [];
+      snapshot.forEach((doc) => {
+        fetched.push(doc.data() as AppUser);
+      });
+      setAppUsers(fetched);
+
+      // Seed default admin if missing
+      const hasAdmin = fetched.some(u => u.username === 'admin');
+      if (!hasAdmin && fetched.length === 0) {
+        try {
+          const defaultAdmin: AppUser = {
+            username: 'admin',
+            password: 'admin',
+            namaLengkap: 'Bima Admin Utama',
+            role: 'Admin'
+          };
+          await setDoc(doc(db, 'app_users', 'admin'), defaultAdmin);
+          console.log('Seeded default admin user to app_users collection.');
+        } catch (e) {
+          console.error('Failed to seed default admin user:', e);
+        }
+      }
+    }, (error) => {
+      console.warn('Real-time app_users subscription failed (offline/fresh mode):', error);
+    });
+
+    return () => unsub();
+  }, []);
+
   // 3. Log user activity helper
   const logSystemActivity = async (
     activity: string, 
@@ -168,31 +205,46 @@ export default function App() {
   // 4. Handle Authentications
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginUsername.trim()) return;
-
-    let fullName = loginFullName.trim() || loginUsername.trim();
+    setLoginError('');
     
-    // Auto populate fields based on presets
-    if (loginUsername === 'admin') {
-      fullName = 'Bima Admin Utama';
+    const userClean = loginUsername.toLowerCase().trim();
+    const passClean = loginPassword.trim();
+    
+    if (!userClean || !passClean) {
+      setLoginError('Nama pengguna dan kata sandi wajib diisi!');
+      return;
     }
 
-    const userData: AppUser = {
-      username: loginUsername.toLowerCase().trim(),
-      role: loginRole,
-      namaLengkap: fullName,
-      nik: loginNik.trim()
-    };
+    // Try matching with fetched app_users
+    let matchedUser = appUsers.find(u => u.username === userClean);
+    
+    // Offline / Seeding Fallback
+    if (!matchedUser && userClean === 'admin' && passClean === 'admin') {
+      matchedUser = {
+        username: 'admin',
+        password: 'admin',
+        namaLengkap: 'Bima Admin Utama',
+        role: 'Admin'
+      };
+    }
 
-    setCurrentUser(userData);
-    sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(userData));
-    logSystemActivity('Login', `User ${fullName} (${loginRole}) berhasil masuk ke sistem.`);
-    setActiveTab('dashboard');
-
-    // Clean inputs
-    setLoginUsername('');
-    setLoginFullName('');
-    setLoginNik('');
+    if (matchedUser) {
+      if (matchedUser.password === passClean) {
+        setCurrentUser(matchedUser);
+        sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(matchedUser));
+        logSystemActivity('Login', `User ${matchedUser.namaLengkap} (${matchedUser.role}) berhasil masuk ke sistem.`);
+        setActiveTab('dashboard');
+        
+        // Clean inputs
+        setLoginUsername('');
+        setLoginPassword('');
+        setLoginError('');
+      } else {
+        setLoginError('Kata sandi yang Anda masukkan salah!');
+      }
+    } else {
+      setLoginError('Nama pengguna tidak terdaftar!');
+    }
   };
 
   const handleLogout = () => {
@@ -459,55 +511,44 @@ export default function App() {
               </p>
             </div>
 
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 text-left">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+                {loginError}
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-4 text-left">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Nama Pengguna (Username)</label>
                 <input 
                   type="text" 
-                  placeholder="Contoh: admin, staff, warga123" 
+                  placeholder="Contoh: admin, staff_bolo, warga_a12" 
                   value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-sm font-semibold focus:bg-white"
+                  onChange={(e) => setLoginUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').trim())}
+                  className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-sm font-semibold focus:bg-white font-mono"
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Nama Lengkap (Tampilan)</label>
-                <input 
-                  type="text" 
-                  placeholder="Nama Lengkap Anda" 
-                  value={loginFullName}
-                  onChange={(e) => setLoginFullName(e.target.value)}
-                  className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-sm font-semibold focus:bg-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Hak Akses / Role</label>
-                  <select 
-                    value={loginRole}
-                    onChange={(e) => setLoginRole(e.target.value as UserRole)}
-                    className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-xs font-bold focus:bg-white cursor-pointer"
-                  >
-                    <option value="Admin">Administrator</option>
-                    <option value="Kantor Pertanahan">Operator</option>
-                    <option value="Surveyor">Surveyor</option>
-                    <option value="Warga">Warga/Tamu</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">NIK (Khusus Warga/Tamu)</label>
+                <label className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Kata Sandi (Password)</label>
+                <div className="relative">
                   <input 
-                    type="text" 
-                    maxLength={16}
-                    placeholder="Wajib Role = Warga"
-                    value={loginNik}
-                    onChange={(e) => setLoginNik(e.target.value.replace(/\D/g, ''))}
-                    className="px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-xs font-mono tracking-wider focus:bg-white"
+                    type={showLoginPassword ? 'text' : 'password'} 
+                    placeholder="Masukkan kata sandi Anda" 
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full px-4 pr-10 py-2.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-800 text-sm font-semibold focus:bg-white font-mono"
+                    required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700"
+                  >
+                    {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -587,6 +628,15 @@ export default function App() {
                 >
                   <History className="h-3.5 w-3.5" /> Audit Log
                 </button>
+
+                {currentUser.role === 'Admin' && (
+                  <button 
+                    onClick={() => setActiveTab('pengaturan-akun')}
+                    className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'pengaturan-akun' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    <User className="h-3.5 w-3.5" /> Pengaturan Akun
+                  </button>
+                )}
               </nav>
 
               {/* User Account Badging and Logout */}
@@ -687,6 +737,14 @@ export default function App() {
                   onClearAllLogs={handleClearAllLogs}
                   onClearLogsByDate={handleClearLogsByDate}
                   currentUserRole={currentUser.role}
+                />
+              )}
+
+              {activeTab === 'pengaturan-akun' && currentUser.role === 'Admin' && (
+                <PengaturanAkun 
+                  residents={residents} 
+                  currentUser={currentUser}
+                  logSystemActivity={logSystemActivity}
                 />
               )}
 

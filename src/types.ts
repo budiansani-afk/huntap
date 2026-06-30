@@ -50,6 +50,7 @@ export interface AppUser {
   role: UserRole;
   namaLengkap: string;
   nik?: string; // For role 'Warga' to map to their resident data
+  password?: string; // Kata sandi untuk login
 }
 
 export interface LandCertificationStep {

@@ -49,6 +49,19 @@
         "timestamp": { "type": "string" }
       },
       "required": ["id", "tanggal", "jam", "pengguna", "role", "aktivitas", "nomorRumah", "namaPenerima", "keterangan", "status", "timestamp"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "Registered user account with roles",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "namaLengkap": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "Kantor Pertanahan", "Surveyor", "Warga"] },
+        "nik": { "type": "string" },
+        "password": { "type": "string" }
+      },
+      "required": ["username", "namaLengkap", "role", "password"]
     }
   },
   "firestore": {
@@ -59,6 +72,10 @@
     "audit_logs/{logId}": {
       "schema": "AuditLog",
       "description": "Audit trail for system events"
+    },
+    "app_users/{username}": {
+      "schema": "AppUser",
+      "description": "User accounts with access roles"
     }
   }
 }
