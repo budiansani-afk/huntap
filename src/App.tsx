@@ -584,10 +584,10 @@ export default function App() {
               </div>
 
               {/* Navigation Menu Tabs */}
-              <nav className="flex items-center gap-1 bg-stone-100 p-1 rounded-full border border-stone-200 flex-wrap justify-center">
+              <nav className="flex items-center gap-1 bg-stone-100 p-1 rounded-full border border-stone-200 flex-nowrap overflow-x-auto max-w-full justify-start lg:justify-center scrollbar-none shrink-0 whitespace-nowrap">
                 <button 
                   onClick={() => { setActiveTab('dashboard'); }}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <Home className="h-3.5 w-3.5" /> Dashboard
                 </button>
@@ -595,7 +595,7 @@ export default function App() {
                 {currentUser.role !== 'Warga' && (
                   <button 
                     onClick={() => setActiveTab('input')}
-                    className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'input' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                    className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'input' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                   >
                     <FileText className="h-3.5 w-3.5" /> Input Data
                   </button>
@@ -603,28 +603,28 @@ export default function App() {
 
                 <button 
                   onClick={() => setActiveTab('rekapan')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'rekapan' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'rekapan' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <Table className="h-3.5 w-3.5" /> Data Penghuni
                 </button>
 
                 <button 
                   onClick={() => setActiveTab('bpn-service')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'bpn-service' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'bpn-service' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <ShieldCheck className="h-3.5 w-3.5" /> Pengajuan BPN
                 </button>
 
                 <button 
                   onClick={() => setActiveTab('peta')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'peta' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'peta' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <Map className="h-3.5 w-3.5" /> Peta Sebaran
                 </button>
 
                 <button 
                   onClick={() => setActiveTab('riwayat')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'riwayat' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'riwayat' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <History className="h-3.5 w-3.5" /> Audit Log
                 </button>
@@ -632,7 +632,7 @@ export default function App() {
                 {currentUser.role === 'Admin' && (
                   <button 
                     onClick={() => setActiveTab('pengaturan-akun')}
-                    className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'pengaturan-akun' ? 'bg-blue-600 text-white shadow-md' : 'text-stone-500 hover:text-stone-800'}`}
+                    className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'pengaturan-akun' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                   >
                     <User className="h-3.5 w-3.5" /> Pengaturan Akun
                   </button>
