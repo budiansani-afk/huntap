@@ -164,12 +164,11 @@ export default function App() {
           if (change.type === 'added') {
             const logItem = { id: change.doc.id, ...change.doc.data() } as AuditLog;
             
-            // Check if it's not the current user's action
+            // Show notification for all relevant activities to guarantee real-time visibility
             const isCurrentUserAction = currentUserRef.current && logItem.pengguna === currentUserRef.current.namaLengkap;
-            
             const relevantActivities = ['Tambah Data', 'Edit Data', 'Hapus Data', 'Update Progress', 'Import Excel'];
             
-            if (!isCurrentUserAction && relevantActivities.includes(logItem.aktivitas)) {
+            if (relevantActivities.includes(logItem.aktivitas)) {
               if (activeTabRef.current !== 'riwayat') {
                 setHasNewChanges(true);
               }
@@ -180,12 +179,20 @@ export default function App() {
               else if (logItem.aktivitas === 'Update Progress') toastType = 'success';
               else if (logItem.aktivitas === 'Edit Data') toastType = 'info';
 
+              const displayUser = isCurrentUserAction 
+                ? 'Anda (Sistem)' 
+                : `${logItem.pengguna} (${logItem.role})`;
+
+              const displayTitle = isCurrentUserAction
+                ? `Aktivitas Anda: ${logItem.aktivitas}`
+                : `Perubahan Real-time: ${logItem.aktivitas}`;
+
               if (addToastRef.current) {
                 addToastRef.current(
-                  logItem.aktivitas,
+                  displayTitle,
                   logItem.keterangan,
                   toastType,
-                  `${logItem.pengguna} (${logItem.role})`,
+                  displayUser,
                   logItem.aktivitas
                 );
               }
