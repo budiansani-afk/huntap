@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Home, FileText, Table, History, Map, ShieldCheck, LogIn, LogOut, 
   User, Sparkles, Building, Loader2, CloudLightning, RefreshCw, Layers,
-  AlertCircle, Eye, EyeOff
+  AlertCircle, Eye, EyeOff, Bell
 } from 'lucide-react';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, addDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from './firebase';
@@ -735,6 +735,25 @@ export default function App() {
 
               {/* User Account Badging and Logout */}
               <div className="flex items-center gap-3">
+                {/* Dedicated Notification Bell Icon */}
+                <button
+                  onClick={() => setActiveTab('riwayat')}
+                  className={`relative p-2.5 rounded-xl transition border flex items-center justify-center ${
+                    hasNewChanges 
+                      ? 'bg-amber-50 hover:bg-amber-100 text-amber-500 border-amber-200 shadow-xs' 
+                      : 'bg-stone-50 hover:bg-stone-100 text-stone-400 hover:text-stone-700 border-stone-100'
+                  }`}
+                  title={hasNewChanges ? "Ada Perubahan Data Baru! Klik untuk melihat Audit Log" : "Tidak ada perubahan baru"}
+                >
+                  <Bell className={`h-4 w-4 ${hasNewChanges ? 'animate-bounce text-amber-500' : ''}`} />
+                  {hasNewChanges && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                  )}
+                </button>
+
                 <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-2xl border border-stone-200 shadow-xs">
                   <div className="w-2 h-2 rounded-full bg-blue-600"></div>
                   <div>
