@@ -33,8 +33,14 @@ export default function LandOfficePanel({
   
   // Track resident's matching unit
   const myResidentData = useMemo(() => {
-    if (currentUser.role === 'Warga' && currentUser.nik) {
-      return residents.find(r => r.nik === currentUser.nik || r.nama.toLowerCase().includes(currentUser.username.toLowerCase()));
+    if (currentUser?.role === 'Warga' && currentUser?.nik) {
+      return residents.find(r => {
+        const rNik = r.nik;
+        const rNama = (r.nama || '').toLowerCase();
+        const curNik = currentUser.nik;
+        const curUser = (currentUser.username || '').toLowerCase();
+        return (rNik && curNik && rNik === curNik) || (rNama && curUser && rNama.includes(curUser));
+      });
     }
     return null;
   }, [residents, currentUser]);
@@ -177,9 +183,9 @@ export default function LandOfficePanel({
   // Filter pending or active process cases for BPN
   const bpnFilteredList = useMemo(() => {
     return residents.filter(r => {
-      const q = bpnSearch.toLowerCase();
-      const num = r.nomorRumah.toLowerCase();
-      const name = r.nama.toLowerCase();
+      const q = (bpnSearch || '').toLowerCase();
+      const num = (r.nomorRumah || '').toLowerCase();
+      const name = (r.nama || '').toLowerCase();
       return num.includes(q) || name.includes(q);
     });
   }, [residents, bpnSearch]);

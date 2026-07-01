@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, addDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from './firebase';
-import { Resident, AuditLog, AppUser, UserRole } from './types';
+import { Resident, AuditLog, AppUser, UserRole, AppToast } from './types';
 import Dashboard from './components/Dashboard';
 import ResidentForm from './components/ResidentForm';
 import ResidentTable from './components/ResidentTable';
@@ -19,6 +19,7 @@ import LogRiwayat from './components/LogRiwayat';
 import PetaSebaran from './components/PetaSebaran';
 import LandOfficePanel from './components/LandOfficePanel';
 import PengaturanAkun from './components/PengaturanAkun';
+import ToastContainer from './components/ToastContainer';
 
 const LOCAL_RES_KEY = 'huntap_residents_cache';
 const LOCAL_LOG_KEY = 'huntap_logs_cache';
@@ -26,6 +27,16 @@ const SESSION_USER_KEY = 'huntap_active_user';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [hasNewChanges, setHasNewChanges] = useState(false);
+  const activeTabRef = React.useRef('dashboard');
+
+  React.useEffect(() => {
+    activeTabRef.current = activeTab;
+    if (activeTab === 'riwayat') {
+      setHasNewChanges(false);
+    }
+  }, [activeTab]);
+
   const [residents, setResidents] = useState<Resident[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   
@@ -51,6 +62,44 @@ export default function App() {
   // Dashboard filter pass state
   const [passFilterType, setPassFilterType] = useState('');
   const [passFilterValue, setPassFilterValue] = useState('');
+  const [lastEditedResidentId, setLastEditedResidentId] = useState<string | null>(null);
+  
+  // Persistent ResidentTable filter states (lifted up to survive tab change and editing data)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selKecamatan, setSelKecamatan] = useState('');
+  const [selDesa, setSelDesa] = useState('');
+  const [selStatus, setSelStatus] = useState('');
+  const [selBlok, setSelBlok] = useState('');
+  
+  // Real-time toast notifications state and refs to prevent stale closures
+  const [toasts, setToasts] = useState<AppToast[]>([]);
+  const currentUserRef = React.useRef<AppUser | null>(null);
+  const addToastRef = React.useRef<(title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error', user?: string, aktivitas?: string) => void>(() => {});
+
+  React.useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  React.useEffect(() => {
+    addToastRef.current = (
+      title: string, 
+      message: string, 
+      type: 'info' | 'success' | 'warning' | 'error' = 'info', 
+      user?: string, 
+      aktivitas?: string
+    ) => {
+      const newToast: AppToast = {
+        id: `toast-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        title,
+        message,
+        type,
+        user,
+        aktivitas,
+        timestamp: Date.now()
+      };
+      setToasts(prev => [newToast, ...prev].slice(0, 5));
+    };
+  }, []);
 
   // 1. Authenticate user from session storage
   useEffect(() => {
@@ -102,11 +151,49 @@ export default function App() {
       // This allows the app to operate seamlessly using local cached data.
     });
 
+    let isInitialLogs = true;
     const unsubLogs = onSnapshot(collection(db, 'audit_logs'), (snapshot) => {
       const fetchedLogs: AuditLog[] = [];
       snapshot.forEach(doc => {
         fetchedLogs.push({ id: doc.id, ...doc.data() } as AuditLog);
       });
+
+      // Show real-time toast notifications for new logs from other users/BPN
+      if (!isInitialLogs) {
+        snapshot.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            const logItem = { id: change.doc.id, ...change.doc.data() } as AuditLog;
+            
+            // Check if it's not the current user's action
+            const isCurrentUserAction = currentUserRef.current && logItem.pengguna === currentUserRef.current.namaLengkap;
+            
+            const relevantActivities = ['Tambah Data', 'Edit Data', 'Hapus Data', 'Update Progress', 'Import Excel'];
+            
+            if (!isCurrentUserAction && relevantActivities.includes(logItem.aktivitas)) {
+              if (activeTabRef.current !== 'riwayat') {
+                setHasNewChanges(true);
+              }
+              
+              let toastType: 'info' | 'success' | 'warning' | 'error' = 'info';
+              if (logItem.aktivitas === 'Tambah Data') toastType = 'success';
+              else if (logItem.aktivitas === 'Hapus Data') toastType = 'error';
+              else if (logItem.aktivitas === 'Update Progress') toastType = 'success';
+              else if (logItem.aktivitas === 'Edit Data') toastType = 'info';
+
+              if (addToastRef.current) {
+                addToastRef.current(
+                  logItem.aktivitas,
+                  logItem.keterangan,
+                  toastType,
+                  `${logItem.pengguna} (${logItem.role})`,
+                  logItem.aktivitas
+                );
+              }
+            }
+          }
+        });
+      }
+      isInitialLogs = false;
 
       // Sort descending by timestamp
       fetchedLogs.sort((a, b) => {
@@ -296,6 +383,7 @@ export default function App() {
       }
       
       setEditingResident(null);
+      setLastEditedResidentId(finalResident.id);
       setActiveTab('rekapan');
     } catch (e: any) {
       alert(`Gagal menyimpan data ke Firestore: ${e.message || e}`);
@@ -624,9 +712,15 @@ export default function App() {
 
                 <button 
                   onClick={() => setActiveTab('riwayat')}
-                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'riwayat' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
+                  className={`relative px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'riwayat' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <History className="h-3.5 w-3.5" /> Audit Log
+                  {hasNewChanges && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  )}
                 </button>
 
                 {currentUser.role === 'Admin' && (
@@ -708,6 +802,18 @@ export default function App() {
                   onImportExcel={handleImportExcelData}
                   onNavigateToTab={setActiveTab}
                   currentUserRole={currentUser.role}
+                  lastEditedResidentId={lastEditedResidentId}
+                  onClearLastEdited={() => setLastEditedResidentId(null)}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  selKecamatan={selKecamatan}
+                  setSelKecamatan={setSelKecamatan}
+                  selDesa={selDesa}
+                  setSelDesa={setSelDesa}
+                  selStatus={selStatus}
+                  setSelStatus={setSelStatus}
+                  selBlok={selBlok}
+                  setSelBlok={setSelBlok}
                 />
               )}
 
@@ -764,6 +870,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Real-Time Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={(id) => setToasts(prev => prev.filter(t => t.id !== id))} />
 
     </div>
   );

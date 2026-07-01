@@ -20,6 +20,11 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }: DashboardProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Compute Stats
   const total = residents.length;
   const sudahCount = residents.filter(r => r.terimaSertipikat === 'Sudah').length;
@@ -385,7 +390,9 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
           <div>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Status Sertipikat</h3>
             <div className="h-56">
-              {statusPieData.length > 0 ? (
+              {!isMounted ? (
+                <div className="h-full flex items-center justify-center text-slate-400 text-xs">Memuat grafik...</div>
+              ) : statusPieData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -420,18 +427,22 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Frekuensi Kendala Pertanahan</h3>
           <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={kendalaChartData}>
-                <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} />
-                <YAxis stroke="#888888" fontSize={9} tickLine={false} />
-                <Tooltip formatter={(value) => [`${value} Kavling`, 'Kavling']} />
-                <Bar dataKey="Kavling" radius={[4, 4, 0, 0]}>
-                  {kendalaChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {!isMounted ? (
+              <div className="h-full flex items-center justify-center text-slate-400 text-xs">Memuat grafik...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={kendalaChartData}>
+                  <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} />
+                  <YAxis stroke="#888888" fontSize={9} tickLine={false} />
+                  <Tooltip formatter={(value) => [`${value} Kavling`, 'Kavling']} />
+                  <Bar dataKey="Kavling" radius={[4, 4, 0, 0]}>
+                    {kendalaChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
           <div className="bg-slate-50 p-3 rounded-2xl text-[10px] text-slate-500 flex items-start gap-1.5 mt-2">
             <Info className="h-3.5 w-3.5 text-pastel-blue shrink-0 mt-0.5" />
@@ -443,7 +454,9 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Top 5 Sebaran Kecamatan</h3>
           <div className="h-56">
-            {kecChartData.length > 0 ? (
+            {!isMounted ? (
+              <div className="h-full flex items-center justify-center text-slate-400 text-xs">Memuat grafik...</div>
+            ) : kecChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={kecChartData}>
                   <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} />
@@ -464,7 +477,9 @@ export default function Dashboard({ residents, onSelectFilter, onNavigateToTab }
         <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm">
           <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Per Blok: Total vs Sudah Sertipikat</h3>
           <div className="h-56">
-            {blokChartData.length > 0 ? (
+            {!isMounted ? (
+              <div className="h-full flex items-center justify-center text-slate-400 text-xs">Memuat grafik...</div>
+            ) : blokChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={blokChartData}>
                   <XAxis dataKey="name" stroke="#888888" fontSize={9} tickLine={false} />

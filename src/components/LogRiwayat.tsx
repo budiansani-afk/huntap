@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   History, Calendar, Filter, User, CheckCircle, Clock, Trash2, 
   Eye, FileSpreadsheet, Printer, RotateCcw, AlertCircle, ChevronLeft, ChevronRight, X
@@ -27,6 +27,11 @@ export default function LogRiwayat({
   onClearLogsByDate,
   currentUserRole 
 }: LogRiwayatProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Filter States
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -98,7 +103,7 @@ export default function LogRiwayat({
     return logs.filter(l => {
       if (dateFrom && l.tanggal < dateFrom) return false;
       if (dateTo && l.tanggal > dateTo) return false;
-      if (userQuery && !l.pengguna.toLowerCase().includes(userQuery.toLowerCase())) return false;
+      if (userQuery && !(l.pengguna || '').toLowerCase().includes(userQuery.toLowerCase())) return false;
       if (actQuery && l.aktivitas !== actQuery) return false;
       if (statusQuery && l.status !== statusQuery) return false;
       
@@ -204,14 +209,18 @@ export default function LogRiwayat({
             <History className="h-4.5 w-4.5 text-pastel-orange" /> Tren Aktivitas Sistem (7 Hari Terakhir)
           </h4>
           <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="label" stroke="#888888" fontSize={9} tickLine={false} />
-                <YAxis stroke="#888888" fontSize={9} tickLine={false} allowDecimals={false} />
-                <Tooltip wrapperStyle={{ fontSize: '10px' }} />
-                <Bar dataKey="Aktivitas" fill="#f97316" radius={[4, 4, 0, 0]} barSize={28} />
-              </BarChart>
-            </ResponsiveContainer>
+            {!isMounted ? (
+              <div className="h-full flex items-center justify-center text-slate-400 text-xs">Memuat grafik...</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis dataKey="label" stroke="#888888" fontSize={9} tickLine={false} />
+                  <YAxis stroke="#888888" fontSize={9} tickLine={false} allowDecimals={false} />
+                  <Tooltip wrapperStyle={{ fontSize: '10px' }} />
+                  <Bar dataKey="Aktivitas" fill="#f97316" radius={[4, 4, 0, 0]} barSize={28} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 

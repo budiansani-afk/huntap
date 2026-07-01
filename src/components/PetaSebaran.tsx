@@ -30,6 +30,7 @@ export default function PetaSebaran({
   const mapRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const hasInitialFitRef = useRef(false);
+  const popupTimerRef = useRef<any>(null);
   const [activeTile, setActiveTile] = useState<'streets' | 'satellite'>('satellite');
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
 
@@ -40,10 +41,19 @@ export default function PetaSebaran({
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    // Avoid double-initialization on the same DOM element
+    if ((container as any)._leaflet_id) {
+      return;
+    }
+
+    // Clear any residual inner HTML to prevent duplicate map containers or controls
+    container.innerHTML = '';
 
     // Create Leaflet Map Instance
-    const mapInstance = L.map(mapContainerRef.current, {
+    const mapInstance = L.map(container, {
       center: [DEFAULT_LAT, DEFAULT_LNG],
       zoom: DEFAULT_ZOOM,
       zoomControl: true
@@ -57,9 +67,19 @@ export default function PetaSebaran({
 
     // Cleanup on unmount
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
+      if (popupTimerRef.current) {
+        clearTimeout(popupTimerRef.current);
+      }
+      if (mapInstance) {
+        try {
+          mapInstance.off();
+          mapInstance.remove();
+        } catch (err) {
+          console.warn("Leaflet map cleanup ignored: ", err);
+        }
+        if (mapRef.current === mapInstance) {
+          mapRef.current = null;
+        }
       }
     };
   }, []);
@@ -183,24 +203,41 @@ export default function PetaSebaran({
         duration: 1.5
       });
 
+      // Clear existing timer if any
+      if (popupTimerRef.current) {
+        clearTimeout(popupTimerRef.current);
+      }
+
       // Automatically open popup of located marker after flying
-      setTimeout(() => {
-        L.popup()
-          .setLatLng([lat, lng])
-          .setContent(`
-            <div style="font-family: 'Inter', sans-serif; padding: 4px; width: 160px;">
-              <span style="font-weight: 800; color: #3b82f6;">Unit ${locateResident.nomorRumah}</span>
-              <div style="font-weight: 700; font-size: 12px; margin-top: 2px;">${locateResident.nama}</div>
-              <div style="font-size: 10px; color: #10b981; font-weight: 600; margin-top: 3px;">
-                Status: ${locateResident.terimaSertipikat}
+      popupTimerRef.current = setTimeout(() => {
+        // Double check map and container existence
+        if (!mapRef.current || !mapContainerRef.current) return;
+        try {
+          L.popup()
+            .setLatLng([lat, lng])
+            .setContent(`
+              <div style="font-family: 'Inter', sans-serif; padding: 4px; width: 160px;">
+                <span style="font-weight: 800; color: #3b82f6;">Unit ${locateResident.nomorRumah}</span>
+                <div style="font-weight: 700; font-size: 12px; margin-top: 2px;">${locateResident.nama}</div>
+                <div style="font-size: 10px; color: #10b981; font-weight: 600; margin-top: 3px;">
+                  Status: ${locateResident.terimaSertipikat}
+                </div>
               </div>
-            </div>
-          `)
-          .openOn(map);
+            `)
+            .openOn(mapRef.current);
+        } catch (e) {
+          console.warn("Failed to open locate popup safely:", e);
+        }
       }, 1600);
     }
 
     onClearLocate();
+
+    return () => {
+      if (popupTimerRef.current) {
+        clearTimeout(popupTimerRef.current);
+      }
+    };
   }, [locateResident, onClearLocate]);
 
   const handleResetView = () => {

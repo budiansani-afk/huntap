@@ -98,3 +98,13 @@ export const CERTIFICATION_STEPS: LandCertificationStep[] = [
     icon: 'Home'
   }
 ];
+
+export interface AppToast {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  aktivitas?: string;
+  user?: string;
+  timestamp: number;
+}

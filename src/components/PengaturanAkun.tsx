@@ -75,10 +75,11 @@ export default function PengaturanAkun({
 
   // Filtered users for search list
   const filteredUsers = useMemo(() => {
+    const q = (searchQuery || '').toLowerCase();
     return users.filter(u => 
-      u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.namaLengkap.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.role.toLowerCase().includes(searchQuery.toLowerCase())
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.namaLengkap || '').toLowerCase().includes(q) ||
+      (u.role || '').toLowerCase().includes(q)
     );
   }, [users, searchQuery]);
 

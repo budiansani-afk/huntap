@@ -23,6 +23,18 @@ interface ResidentTableProps {
   onImportExcel: (imported: Resident[]) => void;
   onNavigateToTab: (tabId: string) => void;
   currentUserRole: string;
+  lastEditedResidentId?: string | null;
+  onClearLastEdited?: () => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selKecamatan: string;
+  setSelKecamatan: (kec: string) => void;
+  selDesa: string;
+  setSelDesa: (desa: string) => void;
+  selStatus: string;
+  setSelStatus: (status: string) => void;
+  selBlok: string;
+  setSelBlok: (blok: string) => void;
 }
 
 export default function ResidentTable({ 
@@ -35,14 +47,44 @@ export default function ResidentTable({
   onLocate, 
   onImportExcel, 
   onNavigateToTab,
-  currentUserRole
+  currentUserRole,
+  lastEditedResidentId,
+  onClearLastEdited,
+  searchQuery,
+  setSearchQuery,
+  selKecamatan,
+  setSelKecamatan,
+  selDesa,
+  setSelDesa,
+  selStatus,
+  setSelStatus,
+  selBlok,
+  setSelBlok
 }: ResidentTableProps) {
-  // Filters state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selKecamatan, setSelKecamatan] = useState('');
-  const [selDesa, setSelDesa] = useState('');
-  const [selStatus, setSelStatus] = useState('');
-  const [selBlok, setSelBlok] = useState('');
+  // Filters are now passed as props to persist state across tabs and updates
+
+  // Auto-scroll and highlight edited resident
+  React.useEffect(() => {
+    if (lastEditedResidentId) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`resident-row-${lastEditedResidentId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 500);
+
+      const fadeTimer = setTimeout(() => {
+        if (onClearLastEdited) {
+          onClearLastEdited();
+        }
+      }, 4000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(fadeTimer);
+      };
+    }
+  }, [lastEditedResidentId, onClearLastEdited]);
 
   // Detail Modal State
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
@@ -425,8 +467,14 @@ export default function ResidentTable({
                     statusBadgeColor = 'bg-red-50 text-red-700 border-red-200'; // Red
                   }
 
+                  const isHighlighted = lastEditedResidentId === item.id;
+
                   return (
-                    <tr key={item.id} className="hover:bg-stone-50/50 transition">
+                    <tr 
+                      id={`resident-row-${item.id}`}
+                      key={item.id} 
+                      className={`transition-all duration-500 ${isHighlighted ? 'bg-orange-100/60 border-y-2 border-orange-300 ring-2 ring-orange-200/50' : 'hover:bg-stone-50/50'}`}
+                    >
                       <td className="py-3.5 px-4 font-extrabold text-center text-stone-400">{itemIndex}</td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg font-extrabold text-[11px] tracking-wider shadow-xs">
