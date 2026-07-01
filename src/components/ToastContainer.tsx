@@ -18,7 +18,7 @@ interface ToastContainerProps {
 
 export default function ToastContainer({ toasts, onClose }: ToastContainerProps) {
   return (
-    <div id="toast-notification-wrapper" className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 w-full max-w-sm pointer-events-none md:max-w-md">
+    <div id="toast-notification-wrapper" className="fixed top-24 right-6 z-[9999] flex flex-col gap-3 w-full max-w-sm pointer-events-none md:max-w-md md:top-6">
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onClose={onClose} />
@@ -73,7 +73,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
     <motion.div
       id={`toast-item-${toast.id}`}
       layout
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      initial={{ opacity: 0, y: -50, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9, transition: { duration: 0.2 } }}
       className={`pointer-events-auto flex items-start gap-3 bg-white p-4 rounded-2xl shadow-xl border border-slate-100 border-l-4 ${borderLeftColor} overflow-hidden w-full`}
