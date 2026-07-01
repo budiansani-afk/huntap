@@ -40,6 +40,11 @@ export default function App() {
   const [residents, setResidents] = useState<Resident[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   
+  // Real-time Notification Center states
+  const [notifications, setNotifications] = useState<AuditLog[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [focusedLogId, setFocusedLogId] = useState<string | null>(null);
+  
   // App states
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -173,6 +178,12 @@ export default function App() {
                 setHasNewChanges(true);
               }
               
+              // Add to real-time notification list
+              setNotifications(prev => {
+                if (prev.some(n => n.id === logItem.id)) return prev;
+                return [logItem, ...prev];
+              });
+              
               let toastType: 'info' | 'success' | 'warning' | 'error' = 'info';
               if (logItem.aktivitas === 'Tambah Data') toastType = 'success';
               else if (logItem.aktivitas === 'Hapus Data') toastType = 'error';
@@ -200,8 +211,6 @@ export default function App() {
           }
         });
       }
-      isInitialLogs = false;
-
       // Sort descending by timestamp
       fetchedLogs.sort((a, b) => {
         const getMs = (val: any) => {
@@ -215,6 +224,15 @@ export default function App() {
         return getMs(b.timestamp) - getMs(a.timestamp);
       });
       setLogs(fetchedLogs);
+
+      if (isInitialLogs) {
+        const initialNotifs = fetchedLogs
+          .filter(l => ['Tambah Data', 'Edit Data', 'Hapus Data', 'Update Progress', 'Import Excel'].includes(l.aktivitas))
+          .slice(0, 4);
+        setNotifications(initialNotifs);
+      }
+
+      isInitialLogs = false;
       localStorage.setItem(LOCAL_LOG_KEY, JSON.stringify(fetchedLogs));
     }, (error) => {
       console.warn('Real-time audit_logs subscription failed (offline mode):', error);
@@ -719,15 +737,9 @@ export default function App() {
 
                 <button 
                   onClick={() => setActiveTab('riwayat')}
-                  className={`relative px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'riwayat' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-extrabold tracking-tight transition flex items-center gap-1.5 ${activeTab === 'riwayat' ? 'bg-blue-600 text-white shadow-md' : 'text-orange-500 hover:text-orange-700 hover:bg-orange-50/40'}`}
                 >
                   <History className="h-3.5 w-3.5" /> Audit Log
-                  {hasNewChanges && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                    </span>
-                  )}
                 </button>
 
                 {currentUser.role === 'Admin' && (
@@ -742,24 +754,107 @@ export default function App() {
 
               {/* User Account Badging and Logout */}
               <div className="flex items-center gap-3">
-                {/* Dedicated Notification Bell Icon */}
-                <button
-                  onClick={() => setActiveTab('riwayat')}
-                  className={`relative p-2.5 rounded-xl transition border flex items-center justify-center ${
-                    hasNewChanges 
-                      ? 'bg-amber-50 hover:bg-amber-100 text-amber-500 border-amber-200 shadow-xs' 
-                      : 'bg-stone-50 hover:bg-stone-100 text-stone-400 hover:text-stone-700 border-stone-100'
-                  }`}
-                  title={hasNewChanges ? "Ada Perubahan Data Baru! Klik untuk melihat Audit Log" : "Tidak ada perubahan baru"}
-                >
-                  <Bell className={`h-4 w-4 ${hasNewChanges ? 'animate-bounce text-amber-500' : ''}`} />
-                  {hasNewChanges && (
-                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                    </span>
+                {/* Dedicated Notification Bell Icon & Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setIsNotificationOpen(!isNotificationOpen);
+                      setHasNewChanges(false); // Mark as viewed when clicking
+                    }}
+                    className={`relative p-2.5 rounded-xl transition border flex items-center justify-center ${
+                      hasNewChanges || notifications.length > 0
+                        ? 'bg-amber-50 hover:bg-amber-100 text-amber-500 border-amber-200 shadow-xs' 
+                        : 'bg-stone-50 hover:bg-stone-100 text-stone-400 hover:text-stone-700 border-stone-100'
+                    }`}
+                    title="Notifikasi Perubahan Data"
+                  >
+                    <Bell className={`h-4 w-4 ${hasNewChanges ? 'animate-bounce text-amber-500' : ''}`} />
+                    {hasNewChanges && (
+                      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                      </span>
+                    )}
+                    {notifications.length > 0 && !hasNewChanges && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white font-extrabold text-[8px] h-4 w-4 rounded-full flex items-center justify-center border border-white shadow-xs">
+                        {notifications.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notification Dropdown Container */}
+                  {isNotificationOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-3 duration-200">
+                      <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Bell className="h-4 w-4 text-amber-500" />
+                          <span className="font-extrabold text-[11px] text-stone-800 uppercase tracking-wider">Notifikasi ({notifications.length})</span>
+                        </div>
+                        {notifications.length > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNotifications([]);
+                              setHasNewChanges(false);
+                            }}
+                            className="text-[10px] font-black text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100/70 px-2 py-1 rounded-lg transition"
+                          >
+                            Semua sudah dibaca
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-72 overflow-y-auto divide-y divide-stone-150">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => {
+                            let itemColor = 'border-l-blue-500';
+                            let bgColor = 'hover:bg-slate-50/50';
+                            if (notif.aktivitas === 'Tambah Data') {
+                              itemColor = 'border-l-emerald-500 bg-emerald-50/10';
+                            } else if (notif.aktivitas === 'Hapus Data') {
+                              itemColor = 'border-l-rose-500 bg-rose-50/10';
+                            } else if (notif.aktivitas === 'Update Progress') {
+                              itemColor = 'border-l-teal-500 bg-teal-50/10';
+                            } else if (notif.aktivitas === 'Edit Data') {
+                              itemColor = 'border-l-amber-500 bg-amber-50/10';
+                            }
+
+                            return (
+                              <button
+                                key={notif.id}
+                                onClick={() => {
+                                  setActiveTab('riwayat');
+                                  setFocusedLogId(notif.id);
+                                  setIsNotificationOpen(false);
+                                  setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                                }}
+                                className={`w-full p-3 text-left hover:bg-stone-50 transition flex flex-col gap-1 border-l-4 ${itemColor} ${bgColor}`}
+                              >
+                                <div className="flex justify-between items-start w-full">
+                                  <span className="font-extrabold text-[10px] text-stone-800 uppercase tracking-tight">{notif.aktivitas}</span>
+                                  <span className="text-[8px] font-bold text-stone-400 whitespace-nowrap">{notif.tanggal} {notif.jam}</span>
+                                </div>
+                                <p className="text-[10px] font-medium text-stone-600 line-clamp-2 leading-snug">{notif.keterangan}</p>
+                                <div className="text-[8px] font-bold text-stone-400 flex justify-between items-center w-full mt-0.5">
+                                  <span>Oleh: {notif.pengguna}</span>
+                                  {notif.nomorRumah && (
+                                    <span className="bg-stone-100 text-stone-600 font-extrabold px-1 py-0.5 rounded uppercase tracking-wider text-[8px]">
+                                      Rumah {notif.nomorRumah}
+                                    </span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="p-8 text-center text-stone-400 text-xs font-semibold">
+                            Tidak ada notifikasi baru
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </button>
+                </div>
 
                 <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-2xl border border-stone-200 shadow-xs">
                   <div className="w-2 h-2 rounded-full bg-blue-600"></div>
@@ -869,6 +964,8 @@ export default function App() {
                   onClearAllLogs={handleClearAllLogs}
                   onClearLogsByDate={handleClearLogsByDate}
                   currentUserRole={currentUser.role}
+                  focusedLogId={focusedLogId}
+                  onResetFocusedLog={() => setFocusedLogId(null)}
                 />
               )}
 

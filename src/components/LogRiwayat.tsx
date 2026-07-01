@@ -18,6 +18,8 @@ interface LogRiwayatProps {
   onClearAllLogs: () => void;
   onClearLogsByDate: (date: string) => void;
   currentUserRole: string;
+  focusedLogId?: string | null;
+  onResetFocusedLog?: () => void;
 }
 
 export default function LogRiwayat({ 
@@ -25,12 +27,41 @@ export default function LogRiwayat({
   onDeleteLog, 
   onClearAllLogs, 
   onClearLogsByDate,
-  currentUserRole 
+  currentUserRole,
+  focusedLogId,
+  onResetFocusedLog
 }: LogRiwayatProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle focused notification click: jump to corresponding page, open detail, and scroll to it
+  useEffect(() => {
+    if (focusedLogId && logs.length > 0) {
+      // Find index in overall list
+      const index = logs.findIndex(l => l.id === focusedLogId);
+      if (index !== -1) {
+        // Calculate page
+        const targetPage = Math.floor(index / itemsPerPage) + 1;
+        setCurrentPage(targetPage);
+        
+        // Find the log object and open its detail modal directly!
+        const foundLog = logs.find(l => l.id === focusedLogId);
+        if (foundLog) {
+          setSelectedLog(foundLog);
+        }
+
+        // Scroll to the row element smoothly
+        setTimeout(() => {
+          const rowElement = document.getElementById(`log-row-${focusedLogId}`);
+          if (rowElement) {
+            rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 350);
+      }
+    }
+  }, [focusedLogId, logs]);
 
   // Filter States
   const [dateFrom, setDateFrom] = useState('');
@@ -46,6 +77,13 @@ export default function LogRiwayat({
 
   // Detail Modal State
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+
+  const handleCloseDetail = () => {
+    setSelectedLog(null);
+    if (onResetFocusedLog) {
+      onResetFocusedLog();
+    }
+  };
 
   // Stats computation
   const stats = useMemo(() => {
@@ -386,7 +424,15 @@ export default function LogRiwayat({
                   const logIndex = (currentPage - 1) * itemsPerPage + idx + 1;
                   const isSuccess = log.status === 'Berhasil';
                   return (
-                    <tr key={log.id} className="hover:bg-slate-50/45 transition">
+                    <tr 
+                      key={log.id} 
+                      id={`log-row-${log.id}`} 
+                      className={`hover:bg-slate-50/45 transition ${
+                        focusedLogId === log.id 
+                          ? 'bg-amber-50/75 border-l-4 border-l-amber-500 font-semibold ring-2 ring-amber-300/60 ring-offset-1' 
+                          : ''
+                      }`}
+                    >
                       <td className="py-3 px-4 text-center text-slate-400 font-bold">{logIndex}</td>
                       <td className="py-3 px-4">
                         <div className="font-bold text-slate-700">{log.tanggal}</div>
@@ -493,7 +539,7 @@ export default function LogRiwayat({
                 <History className="h-4.5 w-4.5 text-pastel-orange" /> Rincian Transaksi / Audit Log
               </h3>
               <button 
-                onClick={() => setSelectedLog(null)}
+                onClick={handleCloseDetail}
                 className="p-1.5 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600"
               >
                 <X className="h-5 w-5" />
@@ -555,7 +601,7 @@ export default function LogRiwayat({
 
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 rounded-b-3xl flex justify-end">
               <button 
-                onClick={() => setSelectedLog(null)}
+                onClick={handleCloseDetail}
                 className="px-5 py-1.5 rounded-full bg-slate-200 text-slate-600 hover:bg-slate-300 font-bold text-xs"
               >
                 Tutup Detail Log

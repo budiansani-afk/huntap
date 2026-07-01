@@ -38,7 +38,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose(toast.id);
-    }, 7000); // auto close after 7s
+    }, 2000); // auto close after 2s
     return () => clearTimeout(timer);
   }, [toast.id, onClose]);
 
