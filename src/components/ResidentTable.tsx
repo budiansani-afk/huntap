@@ -446,7 +446,7 @@ export default function ResidentTable({
                 <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Wilayah / Desa</th>
                 <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Alas Hak / Dokumen Asal</th>
                 <th className="py-4 px-4 font-black text-[10px] bg-stone-50">Keterangan/Catatan</th>
-                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Luas</th>
+                <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Luas (m²)</th>
                 <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Status Sertipikat</th>
                 <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Alur BPN</th>
                 <th className="py-4 px-4 font-black text-center text-[10px] bg-stone-50">Aksi</th>
@@ -494,7 +494,7 @@ export default function ResidentTable({
                       <td className="py-3.5 px-4 font-semibold text-stone-500 max-w-[150px] truncate" title={item.catatanPetugas || item.keterangan || ''}>
                         {item.catatanPetugas || item.keterangan || '-'}
                       </td>
-                      <td className="py-3.5 px-4 text-center font-bold text-stone-800">{item.luas ? `${item.luas} m²` : '-'}</td>
+                      <td className="py-3.5 px-4 text-center font-bold text-stone-800">{item.luas ? `${item.luas}` : '-'}</td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${statusBadgeColor}`}>
                           {item.terimaSertipikat === 'Sudah' ? 'Terbit' : (item.terimaSertipikat === 'Sedang Proses' ? 'Diproses' : 'Belum')}

@@ -29,6 +29,7 @@ export default function PetaSebaran({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
+  const markersMapRef = useRef<Record<string, L.CircleMarker>>({});
   const hasInitialFitRef = useRef(false);
   const popupTimerRef = useRef<any>(null);
   const [activeTile, setActiveTile] = useState<'streets' | 'satellite'>('satellite');
@@ -123,6 +124,7 @@ export default function PetaSebaran({
     if (!map || !markersGroup) return;
 
     markersGroup.clearLayers();
+    markersMapRef.current = {};
     const points: L.LatLng[] = [];
 
     residents.forEach((r) => {
@@ -175,6 +177,7 @@ export default function PetaSebaran({
       });
 
       marker.addTo(markersGroup);
+      markersMapRef.current[r.id] = marker;
     });
 
     // Auto fit map bounds on initial render to display all points
@@ -198,37 +201,96 @@ export default function PetaSebaran({
     const lng = parseFloat(parts[1]);
 
     if (!isNaN(lat) && !isNaN(lng)) {
-      map.flyTo([lat, lng], 18, {
+      // Invalidate map size to prevent gray/broken layout tiles when switching tabs
+      map.invalidateSize();
+
+      // Smoothly fly to coordinate
+      map.flyTo([lat, lng], 19, {
         animate: true,
-        duration: 1.5
+        duration: 1.2
       });
 
-      // Clear existing timer if any
+      // Clear existing timers/pulses
       if (popupTimerRef.current) {
         clearTimeout(popupTimerRef.current);
       }
 
-      // Automatically open popup of located marker after flying
+      // Add gorgeous pulsing highlight ripple effect to precisely point out the location
+      const pulseCircle = L.circleMarker([lat, lng], {
+        radius: 12,
+        fillColor: '#3b82f6',
+        color: '#2563eb',
+        weight: 1.5,
+        opacity: 0.9,
+        fillOpacity: 0.45
+      }).addTo(map);
+
+      let currentRadius = 12;
+      let currentOpacity = 0.9;
+      const pulseInterval = setInterval(() => {
+        currentRadius += 2.5;
+        currentOpacity -= 0.08;
+        if (currentOpacity <= 0) {
+          clearInterval(pulseInterval);
+          try {
+            map.removeLayer(pulseCircle);
+          } catch (e) {}
+        } else {
+          pulseCircle.setRadius(currentRadius);
+          pulseCircle.setStyle({
+            opacity: currentOpacity,
+            fillOpacity: currentOpacity * 0.45
+          });
+        }
+      }, 80);
+
+      // Automatically open beautiful detailed Leaflet popup pointing exactly at the targeted marker
       popupTimerRef.current = setTimeout(() => {
-        // Double check map and container existence
-        if (!mapRef.current || !mapContainerRef.current) return;
+        if (!mapRef.current) return;
         try {
-          L.popup()
-            .setLatLng([lat, lng])
-            .setContent(`
-              <div style="font-family: 'Inter', sans-serif; padding: 4px; width: 160px;">
-                <span style="font-weight: 800; color: #3b82f6;">Unit ${locateResident.nomorRumah}</span>
-                <div style="font-weight: 700; font-size: 12px; margin-top: 2px;">${locateResident.nama}</div>
-                <div style="font-size: 10px; color: #10b981; font-weight: 600; margin-top: 3px;">
-                  Status: ${locateResident.terimaSertipikat}
+          const markerObj = markersMapRef.current[locateResident.id];
+          if (markerObj) {
+            const customPopupContent = `
+              <div style="font-family: 'Inter', sans-serif; padding: 6px; width: 190px; text-align: left;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-b: 1px solid #f3f4f6; padding-bottom: 4px; margin-bottom: 5px;">
+                  <span style="font-weight: 900; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Unit ${locateResident.nomorRumah}</span>
+                  <span style="font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase;">KOORDINAT</span>
+                </div>
+                <div style="font-weight: 800; font-size: 13px; color: #111827; margin-top: 2px;">${locateResident.nama}</div>
+                <div style="font-size: 11px; color: #4b5563; font-weight: 500; margin-top: 1px;">Kec. ${locateResident.kecamatan}, Desa ${locateResident.desa}</div>
+                <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 3px;">Luas Kavling: <b>${locateResident.luas || '-'} m²</b></div>
+                <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 1px;">Alas Hak: <b>${locateResident.dokumenTanah || '-'}</b></div>
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+                  <span style="font-size: 9px; font-weight: 800; color: ${
+                    locateResident.terimaSertipikat === 'Sudah' ? '#047857' : (locateResident.terimaSertipikat === 'Sedang Proses' ? '#c2410c' : '#b45309')
+                  }; background: ${
+                    locateResident.terimaSertipikat === 'Sudah' ? '#ecfdf5' : (locateResident.terimaSertipikat === 'Sedang Proses' ? '#fff7ed' : '#fef9c3')
+                  }; padding: 2px 6px; border-radius: 4px; display: inline-block;">
+                    Sertipikat: ${locateResident.terimaSertipikat === 'Sudah' ? 'TERBIT' : (locateResident.terimaSertipikat === 'Sedang Proses' ? 'PROSES BPN' : 'BELUM DIAJUKAN')}
+                  </span>
                 </div>
               </div>
-            `)
-            .openOn(mapRef.current);
+            `;
+            markerObj.bindPopup(customPopupContent, { closeButton: true, offset: [0, -5] }).openPopup();
+          } else {
+            // Fallback popup if marker is not in registry
+            L.popup()
+              .setLatLng([lat, lng])
+              .setContent(`
+                <div style="font-family: 'Inter', sans-serif; padding: 4px; width: 160px;">
+                  <span style="font-weight: 800; color: #3b82f6;">Unit ${locateResident.nomorRumah}</span>
+                  <div style="font-weight: 700; font-size: 12px; margin-top: 2px;">${locateResident.nama}</div>
+                  <div style="font-size: 10px; color: #10b981; font-weight: 600; margin-top: 3px;">
+                    Status: ${locateResident.terimaSertipikat}
+                  </div>
+                </div>
+              `)
+              .openOn(mapRef.current);
+          }
         } catch (e) {
           console.warn("Failed to open locate popup safely:", e);
         }
-      }, 1600);
+      }, 1300);
     }
 
     onClearLocate();
