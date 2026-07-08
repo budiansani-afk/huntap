@@ -140,6 +140,19 @@ export default function ResidentTable({
     return Array.from(set).sort();
   }, [residents, selKecamatan]);
 
+  const blokOptions = useMemo(() => {
+    const set = new Set<string>();
+    residents.forEach(r => {
+      if (r.nomorRumah) {
+        const match = r.nomorRumah.match(/^([A-Za-z0-9]+)/);
+        if (match) {
+          set.add(match[1].toUpperCase());
+        }
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [residents]);
+
   // Filter & Search Logic
   const filteredResidents = useMemo(() => {
     return residents.filter(r => {
@@ -413,13 +426,9 @@ export default function ResidentTable({
               className="px-3 py-1.5 rounded-xl border border-stone-200 bg-stone-50 text-stone-700 text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-blue-100"
             >
               <option value="">Semua Blok</option>
-              <option value="A">Blok A</option>
-              <option value="B">Blok B</option>
-              <option value="C">Blok C</option>
-              <option value="D">Blok D</option>
-              <option value="E">Blok E</option>
-              <option value="J1">Blok J1</option>
-              <option value="J2">Blok J2</option>
+              {blokOptions.map(blok => (
+                <option key={blok} value={blok}>Blok {blok}</option>
+              ))}
             </select>
           </div>
 
