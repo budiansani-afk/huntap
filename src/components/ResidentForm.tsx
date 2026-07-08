@@ -16,9 +16,10 @@ interface ResidentFormProps {
   onSave: (resident: Omit<Resident, 'lastUpdated' | 'updatedBy'>) => void;
   onCancel: () => void;
   currentUser: string;
+  residents: Resident[];
 }
 
-export default function ResidentForm({ editingResident, onSave, onCancel, currentUser }: ResidentFormProps) {
+export default function ResidentForm({ editingResident, onSave, onCancel, currentUser, residents = [] }: ResidentFormProps) {
   const [nomorRumah, setNomorRumah] = useState('');
   const [nama, setNama] = useState('');
   const [nik, setNik] = useState('');
@@ -157,6 +158,34 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
     if (noKk && noKk.length !== 16) {
       setErrorMsg('Nomor KK harus terdiri dari 16 digit angka!');
       return;
+    }
+
+    // Duplicate Validation
+    const normalizedNomorRumah = nomorRumah.trim().toUpperCase();
+    const normalizedNik = nik.trim();
+
+    // 1. Check for duplicate Nomor Rumah
+    const duplicateNomorRumah = residents.find(r => 
+      r.nomorRumah && r.nomorRumah.toUpperCase() === normalizedNomorRumah && 
+      (!editingResident || r.id !== editingResident.id)
+    );
+
+    if (duplicateNomorRumah) {
+      setErrorMsg(`Peringatan: Nomor Rumah "${normalizedNomorRumah}" sudah terdaftar atas nama "${duplicateNomorRumah.nama}"! Silakan periksa kembali.`);
+      return;
+    }
+
+    // 2. Check for duplicate NIK (KTP)
+    if (normalizedNik) {
+      const duplicateNik = residents.find(r => 
+        r.nik === normalizedNik && 
+        (!editingResident || r.id !== editingResident.id)
+      );
+
+      if (duplicateNik) {
+        setErrorMsg(`Peringatan: Nomor KTP / NIK "${normalizedNik}" sudah terdaftar atas nama "${duplicateNik.nama}" di Unit Rumah "${duplicateNik.nomorRumah || '-'}"!`);
+        return;
+      }
     }
 
     const itemData: Omit<Resident, 'lastUpdated' | 'updatedBy'> = {

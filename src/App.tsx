@@ -908,6 +908,7 @@ export default function App() {
                   onSave={handleSaveResident} 
                   onCancel={() => { setEditingResident(null); setActiveTab('rekapan'); }}
                   currentUser={currentUser.namaLengkap}
+                  residents={residents}
                 />
               )}
 

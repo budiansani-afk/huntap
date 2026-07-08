@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { 
   MapPin, Globe, Compass, Home, Layers, Check, Info, X, 
-  User, Key, Phone, Ruler, Clock, Edit2
+  User, Key, Phone, Ruler, Clock, Edit2, Search
 } from 'lucide-react';
 import { Resident } from '../types';
 
@@ -34,6 +34,20 @@ export default function PetaSebaran({
   const popupTimerRef = useRef<any>(null);
   const [activeTile, setActiveTile] = useState<'streets' | 'satellite'>('satellite');
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filtered residents list for global search under the map
+  const filteredSearchResidents = React.useMemo(() => {
+    if (!searchQuery.trim()) return residents;
+    const q = searchQuery.toLowerCase().trim();
+    return residents.filter(r => 
+      (r.nama || '').toLowerCase().includes(q) ||
+      (r.nomorRumah || '').toLowerCase().includes(q) ||
+      (r.nik || '').toLowerCase().includes(q) ||
+      (r.noKk || '').toLowerCase().includes(q) ||
+      (r.desa || '').toLowerCase().includes(q)
+    );
+  }, [residents, searchQuery]);
 
   // Coordinates of Bolo, Bima, NTB
   const DEFAULT_LAT = -8.505668;
@@ -165,10 +179,34 @@ export default function PetaSebaran({
         fillOpacity: 0.9
       });
 
-      // Simple hover tooltip
-      marker.bindTooltip(`Unit ${r.nomorRumah}: ${r.nama}`, {
+      // Beautiful customized hover tooltip showing Nama Penerima and Nomor Rumah
+      marker.bindTooltip(`
+        <div style="font-family: 'Inter', sans-serif; padding: 4px 6px;">
+          <div style="font-weight: 800; font-size: 11px; color: #2563eb; margin-bottom: 2px;">Unit ${r.nomorRumah || '-'}</div>
+          <div style="font-weight: 600; font-size: 11px; color: #374151;">Penerima: ${r.nama || '-'}</div>
+        </div>
+      `, {
         permanent: false,
-        direction: 'top'
+        direction: 'top',
+        opacity: 0.95
+      });
+
+      // Mouseover hover effects
+      marker.on('mouseover', function () {
+        this.setStyle({
+          radius: 12,
+          weight: 4,
+          fillOpacity: 1
+        });
+      });
+
+      // Mouseout hover reset
+      marker.on('mouseout', function () {
+        this.setStyle({
+          radius: 8,
+          weight: 2,
+          fillOpacity: 0.9
+        });
       });
 
       // Handle marker click to open custom React detail modal
@@ -187,14 +225,14 @@ export default function PetaSebaran({
       hasInitialFitRef.current = true;
     }
 
-  }, [residents, locateResident]);
+  }, [residents]);
 
-  // Handle outside pan/locate events (e.g. from table selection)
-  useEffect(() => {
+  // Reusable function to focus on a resident on the map
+  const focusOnResident = (res: Resident) => {
     const map = mapRef.current;
-    if (!map || !locateResident || !locateResident.koordinat) return;
+    if (!map || !res.koordinat) return;
 
-    const parts = locateResident.koordinat.split(',');
+    const parts = res.koordinat.split(',');
     if (parts.length !== 2) return;
 
     const lat = parseFloat(parts[0]);
@@ -204,8 +242,8 @@ export default function PetaSebaran({
       // Invalidate map size to prevent gray/broken layout tiles when switching tabs
       map.invalidateSize();
 
-      // Smoothly fly to coordinate
-      map.flyTo([lat, lng], 19, {
+      // Smoothly fly to coordinate with max detail focus
+      map.flyTo([lat, lng], 20, {
         animate: true,
         duration: 1.2
       });
@@ -213,6 +251,21 @@ export default function PetaSebaran({
       // Clear existing timers/pulses
       if (popupTimerRef.current) {
         clearTimeout(popupTimerRef.current);
+      }
+
+      // Highlight target marker as focused/hovered & open tooltip automatically
+      const markerObj = markersMapRef.current[res.id];
+      if (markerObj) {
+        markerObj.setStyle({
+          radius: 13,
+          weight: 5,
+          fillOpacity: 1
+        });
+        try {
+          markerObj.openTooltip();
+        } catch (e) {
+          console.warn("Could not auto-open tooltip:", e);
+        }
       }
 
       // Add gorgeous pulsing highlight ripple effect to precisely point out the location
@@ -248,40 +301,49 @@ export default function PetaSebaran({
       popupTimerRef.current = setTimeout(() => {
         if (!mapRef.current) return;
         try {
-          const markerObj = markersMapRef.current[locateResident.id];
-          if (markerObj) {
+          const mObj = markersMapRef.current[res.id];
+          if (mObj) {
             const customPopupContent = `
               <div style="font-family: 'Inter', sans-serif; padding: 6px; width: 190px; text-align: left;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-b: 1px solid #f3f4f6; padding-bottom: 4px; margin-bottom: 5px;">
-                  <span style="font-weight: 900; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Unit ${locateResident.nomorRumah}</span>
+                  <span style="font-weight: 900; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Unit ${res.nomorRumah}</span>
                   <span style="font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase;">KOORDINAT</span>
                 </div>
-                <div style="font-weight: 800; font-size: 13px; color: #111827; margin-top: 2px;">${locateResident.nama}</div>
-                <div style="font-size: 11px; color: #4b5563; font-weight: 500; margin-top: 1px;">Kec. ${locateResident.kecamatan}, Desa ${locateResident.desa}</div>
-                <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 3px;">Luas Kavling: <b>${locateResident.luas || '-'} m²</b></div>
-                <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 1px;">Alas Hak: <b>${locateResident.dokumenTanah || '-'}</b></div>
+                <div style="font-weight: 800; font-size: 13px; color: #111827; margin-top: 2px;">${res.nama}</div>
+                <div style="font-size: 11px; color: #4b5563; font-weight: 500; margin-top: 1px;">Kec. ${res.kecamatan}, Desa ${res.desa}</div>
+                <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 3px;">Luas Kavling: <b>${res.luas || '-'} m²</b></div>
+                <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 1px;">Alas Hak: <b>${res.dokumenTanah || '-'}</b></div>
                 <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 9px; font-weight: 800; color: ${
-                    locateResident.terimaSertipikat === 'Sudah' ? '#047857' : (locateResident.terimaSertipikat === 'Sedang Proses' ? '#c2410c' : '#b45309')
+                    res.terimaSertipikat === 'Sudah' ? '#047857' : (res.terimaSertipikat === 'Sedang Proses' ? '#c2410c' : '#b45309')
                   }; background: ${
-                    locateResident.terimaSertipikat === 'Sudah' ? '#ecfdf5' : (locateResident.terimaSertipikat === 'Sedang Proses' ? '#fff7ed' : '#fef9c3')
+                    res.terimaSertipikat === 'Sudah' ? '#ecfdf5' : (res.terimaSertipikat === 'Sedang Proses' ? '#fff7ed' : '#fef9c3')
                   }; padding: 2px 6px; border-radius: 4px; display: inline-block;">
-                    Sertipikat: ${locateResident.terimaSertipikat === 'Sudah' ? 'TERBIT' : (locateResident.terimaSertipikat === 'Sedang Proses' ? 'PROSES BPN' : 'BELUM DIAJUKAN')}
+                    Sertipikat: ${res.terimaSertipikat === 'Sudah' ? 'TERBIT' : (res.terimaSertipikat === 'Sedang Proses' ? 'PROSES BPN' : 'BELUM DIAJUKAN')}
                   </span>
                 </div>
               </div>
             `;
-            markerObj.bindPopup(customPopupContent, { closeButton: true, offset: [0, -5] }).openPopup();
+            mObj.bindPopup(customPopupContent, { closeButton: true, offset: [0, -5] }).openPopup();
+
+            // Revert style back to normal when popup is closed
+            mapRef.current.once('popupclose', () => {
+              mObj.setStyle({
+                radius: 8,
+                weight: 2,
+                fillOpacity: 0.9
+              });
+            });
           } else {
             // Fallback popup if marker is not in registry
             L.popup()
               .setLatLng([lat, lng])
               .setContent(`
                 <div style="font-family: 'Inter', sans-serif; padding: 4px; width: 160px;">
-                  <span style="font-weight: 800; color: #3b82f6;">Unit ${locateResident.nomorRumah}</span>
-                  <div style="font-weight: 700; font-size: 12px; margin-top: 2px;">${locateResident.nama}</div>
+                  <span style="font-weight: 800; color: #3b82f6;">Unit ${res.nomorRumah}</span>
+                  <div style="font-weight: 700; font-size: 12px; margin-top: 2px;">${res.nama}</div>
                   <div style="font-size: 10px; color: #10b981; font-weight: 600; margin-top: 3px;">
-                    Status: ${locateResident.terimaSertipikat}
+                    Status: ${res.terimaSertipikat}
                   </div>
                 </div>
               `)
@@ -292,10 +354,24 @@ export default function PetaSebaran({
         }
       }, 1300);
     }
+  };
 
+  // Handle outside pan/locate events (e.g. from table selection)
+  useEffect(() => {
+    let timer: any = null;
+    if (locateResident) {
+      // Small delay of 250ms ensures that the map container is fully mounted, visible,
+      // and layout sizes are settled after switching tabs.
+      timer = setTimeout(() => {
+        focusOnResident(locateResident);
+      }, 250);
+    }
     onClearLocate();
 
     return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
       if (popupTimerRef.current) {
         clearTimeout(popupTimerRef.current);
       }
@@ -366,6 +442,29 @@ export default function PetaSebaran({
         </div>
       </div>
 
+      {/* Global Search Input Card */}
+      <div className="bg-white p-4 rounded-3xl border border-slate-100 shadow-xs">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Cari Penerima Huntap (Nama, No. Rumah, NIK, No. KK, atau Desa/Wilayah) secara global..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 text-xs font-semibold rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-100 outline-hidden transition-all duration-250"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition"
+              title="Bersihkan Pencarian"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Actual Map Canvas container */}
       <div id="map-container-canvas" className="bg-white p-2 rounded-3xl border border-slate-100 shadow-xs overflow-hidden relative">
         <div ref={mapContainerRef} className="h-[480px] w-full rounded-2xl z-10 border border-slate-100"></div>
@@ -390,6 +489,110 @@ export default function PetaSebaran({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Search Results Card below the map */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+              <Search className="h-4 w-4 text-blue-600" /> 
+              {searchQuery ? 'Hasil Pencarian Unit Huntap' : 'Daftar Lokasi Unit Huntap'}
+            </h4>
+            <p className="text-[10px] text-slate-500">
+              {searchQuery 
+                ? `Menampilkan ${filteredSearchResidents.length} dari ${residents.length} unit yang cocok dengan "${searchQuery}"` 
+                : `Menampilkan semua ${residents.length} unit huntap yang terdaftar`
+              }
+            </p>
+          </div>
+          <span className="text-[10px] font-extrabold bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 self-start sm:self-center">
+            {filteredSearchResidents.length} Unit
+          </span>
+        </div>
+
+        {filteredSearchResidents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[350px] overflow-y-auto pr-1">
+            {filteredSearchResidents.map((r) => {
+              let statusColor = 'text-amber-600 bg-amber-50 border-amber-100';
+              if (r.terimaSertipikat === 'Sudah') {
+                statusColor = 'text-emerald-600 bg-emerald-50 border-emerald-100';
+              } else if (r.terimaSertipikat === 'Sedang Proses') {
+                statusColor = 'text-orange-600 bg-orange-50 border-orange-100';
+              }
+
+              const hasCoords = !!r.koordinat && r.koordinat.includes(',');
+
+              return (
+                <div 
+                  key={r.id} 
+                  className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-100 hover:shadow-sm transition duration-150 flex flex-col justify-between gap-3 text-left group"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg">
+                        Unit {r.nomorRumah || '-'}
+                      </span>
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border ${statusColor}`}>
+                        {r.terimaSertipikat === 'Sudah' ? 'SHM TERBIT' : (r.terimaSertipikat === 'Sedang Proses' ? 'PROSES BPN' : 'BELUM DIAJUKAN')}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-xs truncate group-hover:text-blue-600 transition" title={r.nama}>
+                        {r.nama || '-'}
+                      </h5>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        NIK: {r.nik || '-'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-semibold mt-1">
+                        Desa {r.desa || '-'}, Kec. {r.kecamatan || '-'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-1">
+                      <MapPin className={`h-3.5 w-3.5 ${hasCoords ? 'text-blue-500' : 'text-slate-300'}`} />
+                      <span className="text-[9px] font-mono text-slate-400 truncate max-w-[100px]">
+                        {hasCoords ? r.koordinat : 'Tidak ada koordinat'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => setSelectedResident(r)}
+                        className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                        title="Buka Detail"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                      {hasCoords && (
+                        <button
+                          onClick={() => {
+                            focusOnResident(r);
+                            // Scroll smoothly to map container
+                            const mapEl = document.getElementById('map-container-canvas');
+                            if (mapEl) {
+                              mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                          }}
+                          className="px-2.5 py-1 text-[10px] font-black rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white transition flex items-center gap-1 cursor-pointer"
+                        >
+                          Fokus Peta
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-12 text-center text-slate-400 text-xs font-semibold bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            Tidak menemukan penerima huntap dengan kata kunci "{searchQuery}"
+          </div>
+        )}
       </div>
 
       {/* Resident Detail Modal (Slide-out or Popup Overlay) */}
