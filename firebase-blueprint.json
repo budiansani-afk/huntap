@@ -17,6 +17,7 @@
         "terimaSertipikat": { "type": "string", "enum": ["Sudah", "Belum", "Sedang Proses"] },
         "noHp": { "type": "string" },
         "koordinat": { "type": "string" },
+        "koordinatAsal": { "type": "string" },
         "fotoRumah": { "type": "string" },
         "fotoKtpKk": { "type": "string" },
         "unggahDokTanah": { "type": "string" },

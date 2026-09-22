@@ -6,10 +6,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   MapPin, User, FileText, Camera, Save, Undo, Smartphone, Ruler, 
-  Hash, HelpCircle, Activity, FileCheck, Check, Upload, Loader2, AlertCircle 
+  Hash, HelpCircle, Activity, FileCheck, Check, Upload, Loader2, AlertCircle, Home, Compass 
 } from 'lucide-react';
 import { Resident, CERTIFICATION_STEPS } from '../types';
 import { uploadFile } from '../cloudinary';
+import CoordinatePickerModal from './CoordinatePickerModal';
 
 interface ResidentFormProps {
   editingResident: Resident | null;
@@ -31,6 +32,7 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
   const [terimaSertipikat, setTerimaSertipikat] = useState<'Sudah' | 'Belum' | 'Sedang Proses'>('Belum');
   const [noHp, setNoHp] = useState('');
   const [koordinat, setKoordinat] = useState('');
+  const [koordinatAsal, setKoordinatAsal] = useState('');
   const [catatanPetugas, setCatatanPetugas] = useState('');
   const [progressStep, setProgressStep] = useState(1);
 
@@ -42,6 +44,11 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
 
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Coordinate Picker Modal States
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<'huntap' | 'asal'>('huntap');
+  const [justPickedField, setJustPickedField] = useState<'huntap' | 'asal' | null>(null);
 
   // Refs for file input
   const fileInputRumah = useRef<HTMLInputElement>(null);
@@ -63,6 +70,7 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
       setTerimaSertipikat(editingResident.terimaSertipikat || 'Belum');
       setNoHp(editingResident.noHp || '');
       setKoordinat(editingResident.koordinat || '');
+      setKoordinatAsal(editingResident.koordinatAsal || '');
       setCatatanPetugas(editingResident.catatanPetugas || '');
       setProgressStep(editingResident.progressStep || 1);
       setFotoRumah(editingResident.fotoRumah || '');
@@ -86,6 +94,7 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
     setTerimaSertipikat('Belum');
     setNoHp('');
     setKoordinat('');
+    setKoordinatAsal('');
     setCatatanPetugas('');
     setProgressStep(1);
     setFotoRumah('');
@@ -121,21 +130,43 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
     }
   };
 
-  const handleAutoCoordinate = () => {
+  const handleAutoCoordinate = (target: 'huntap' | 'asal') => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const lat = position.coords.latitude.toFixed(6);
           const lng = position.coords.longitude.toFixed(6);
-          setKoordinat(`${lat},${lng}`);
+          if (target === 'huntap') {
+            setKoordinat(`${lat},${lng}`);
+          } else {
+            setKoordinatAsal(`${lat},${lng}`);
+          }
         },
         (error) => {
-          setErrorMsg('Gagal mendeteksi lokasi otomatis. Mohon ketik manual.');
+          setErrorMsg('Gagal mendeteksi lokasi otomatis. Mohon ketik koordinat manual (format: lat,lng).');
         }
       );
     } else {
       setErrorMsg('Fitur GPS tidak didukung oleh browser ini.');
     }
+  };
+
+  const handleOpenPicker = (target: 'huntap' | 'asal') => {
+    setPickerTarget(target);
+    setIsPickerOpen(true);
+  };
+
+  const handleCoordinatePicked = (coord: string) => {
+    if (pickerTarget === 'huntap') {
+      setKoordinat(coord);
+      setJustPickedField('huntap');
+    } else {
+      setKoordinatAsal(coord);
+      setJustPickedField('asal');
+    }
+    setTimeout(() => {
+      setJustPickedField(null);
+    }, 3500);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -201,6 +232,7 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
       terimaSertipikat,
       noHp: noHp.trim(),
       koordinat: koordinat.trim(),
+      koordinatAsal: koordinatAsal.trim(),
       fotoRumah,
       fotoKtpKk,
       unggahDokTanah,
@@ -353,40 +385,113 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                <Smartphone className="h-3.5 w-3.5 text-pastel-blue" /> No. HP Aktif / WhatsApp
-              </label>
-              <input 
-                type="text" 
-                value={noHp}
-                onChange={(e) => setNoHp(e.target.value)}
-                placeholder="Contoh: 08123456789"
-                className="px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-sm font-semibold"
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+              <Smartphone className="h-3.5 w-3.5 text-pastel-blue" /> No. HP Aktif / WhatsApp
+            </label>
+            <input 
+              type="text" 
+              value={noHp}
+              onChange={(e) => setNoHp(e.target.value)}
+              placeholder="Contoh: 08123456789"
+              className="px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-sm font-semibold max-w-md"
+            />
+          </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-600 flex items-center justify-between">
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5 text-pastel-blue" /> Koordinat Lokasi (Lat, Lng)
-                </span>
-                <button 
-                  type="button" 
-                  onClick={handleAutoCoordinate}
-                  className="text-[10px] text-pastel-blue hover:underline font-bold"
-                >
-                  GPS Otomatis
-                </button>
-              </label>
+          {/* Dual Coordinates Card Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            {/* 1. Koordinat Unit Huntap */}
+            <div className={`flex flex-col gap-2 p-4 rounded-2xl border transition-all duration-300 ${
+              justPickedField === 'huntap' 
+                ? 'border-emerald-400 bg-emerald-50/60 ring-2 ring-emerald-300' 
+                : 'border-blue-200/80 bg-blue-50/40'
+            }`}>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                  <Home className="h-4 w-4 text-pastel-blue" />
+                  <span>Koordinat Unit Huntap (Lat, Lng)</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button 
+                    type="button" 
+                    onClick={() => handleOpenPicker('huntap')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+                    title="Buka peta sebaran interaktif untuk memilih titik koordinat unit huntap"
+                  >
+                    <Compass className="h-3.5 w-3.5" /> Ambil dari Peta
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAutoCoordinate('huntap')}
+                    className="text-[11px] px-2 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold transition flex items-center gap-1 cursor-pointer"
+                    title="Deteksi lokasi saat berada di Huntap"
+                  >
+                    <MapPin className="h-3 w-3" /> GPS
+                  </button>
+                </div>
+              </div>
               <input 
                 type="text" 
                 value={koordinat}
                 onChange={(e) => setKoordinat(e.target.value)}
-                placeholder="Contoh: -8.4419,118.6253"
-                className="px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-sm font-mono"
+                placeholder="Contoh: -8.505668,118.605591"
+                className="px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-slate-800 text-sm font-mono focus:bg-white"
               />
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-slate-500">Lokasi kavling/bangunan hunian tetap di Desa Tambe.</span>
+                {justPickedField === 'huntap' && (
+                  <span className="text-emerald-700 font-extrabold flex items-center gap-0.5 bg-emerald-100/80 px-2 py-0.5 rounded-md animate-pulse">
+                    <Check className="h-3 w-3" /> Berhasil dari peta sebaran!
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Koordinat Lokasi Tanah Asal */}
+            <div className={`flex flex-col gap-2 p-4 rounded-2xl border transition-all duration-300 ${
+              justPickedField === 'asal' 
+                ? 'border-emerald-400 bg-emerald-50/60 ring-2 ring-emerald-300' 
+                : 'border-purple-200/80 bg-purple-50/40'
+            }`}>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-purple-600" />
+                  <span>Koordinat Lokasi Tanah Asal (Lat, Lng)</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button 
+                    type="button" 
+                    onClick={() => handleOpenPicker('asal')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold transition flex items-center gap-1 cursor-pointer shadow-xs"
+                    title="Buka peta sebaran interaktif untuk memilih titik koordinat tanah asal"
+                  >
+                    <Compass className="h-3.5 w-3.5" /> Ambil dari Peta
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAutoCoordinate('asal')}
+                    className="text-[11px] px-2 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold transition flex items-center gap-1 cursor-pointer"
+                    title="Deteksi lokasi saat berada di lahan tanah asal"
+                  >
+                    <MapPin className="h-3 w-3" /> GPS
+                  </button>
+                </div>
+              </div>
+              <input 
+                type="text" 
+                value={koordinatAsal}
+                onChange={(e) => setKoordinatAsal(e.target.value)}
+                placeholder="Contoh: -8.514200,118.618500"
+                className="px-4 py-2.5 rounded-xl border border-purple-200 bg-white text-slate-800 text-sm font-mono focus:bg-white"
+              />
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-purple-700/80 font-medium">Lokasi tanah/lahan awal sebelum relokasi.</span>
+                {justPickedField === 'asal' && (
+                  <span className="text-emerald-700 font-extrabold flex items-center gap-0.5 bg-emerald-100/80 px-2 py-0.5 rounded-md animate-pulse">
+                    <Check className="h-3 w-3" /> Berhasil dari peta sebaran!
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -451,6 +556,22 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
               placeholder="Catatan verifikator BPN, kendala berkas, atau sengketa batas..."
               className="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-800 text-sm"
             />
+          </div>
+
+          {/* Info Status Koordinat Tanah Asal */}
+          <div className="p-3.5 bg-purple-50/70 border border-purple-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-purple-600 shrink-0" />
+              <div>
+                <span className="font-bold text-purple-900">Geolokasi Tanah Asal: </span>
+                <span className="font-mono text-purple-800 font-semibold">
+                  {koordinatAsal ? koordinatAsal : 'Belum diinput (Opsional)'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[11px] text-purple-600/90 font-medium">
+              {koordinatAsal ? '✓ Terhubung ke Peta Sebaran Relokasi' : 'Isi koordinat pada Bagian II di atas'}
+            </span>
           </div>
         </div>
 
@@ -659,6 +780,19 @@ export default function ResidentForm({ editingResident, onSave, onCancel, curren
           </button>
         </div>
       </form>
+
+      {/* Coordinate Picker Modal from Distribution Map */}
+      <CoordinatePickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onConfirm={handleCoordinatePicked}
+        initialCoordinate={pickerTarget === 'huntap' ? koordinat : koordinatAsal}
+        targetType={pickerTarget}
+        residentName={nama}
+        nomorRumah={nomorRumah}
+        desa={desa}
+        residents={residents}
+      />
     </div>
   );
 }

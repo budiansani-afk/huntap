@@ -16,6 +16,7 @@ export interface Resident {
   terimaSertipikat: 'Sudah' | 'Belum' | 'Sedang Proses';
   noHp: string;
   koordinat: string; // "lat,lng"
+  koordinatAsal?: string; // "lat,lng" untuk lokasi tanah asal
   fotoRumah?: string; // URL
   fotoKtpKk?: string; // URL
   unggahDokTanah?: string; // URL
