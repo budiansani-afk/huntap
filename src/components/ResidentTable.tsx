@@ -534,11 +534,11 @@ export default function ResidentTable({
                             </button>
                           )}
 
-                          {item.koordinat && (
+                          {(item.koordinat || item.koordinatAsal) && (
                             <button 
                               onClick={() => onLocate(item)}
-                              className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg transition"
-                              title="Lokasi Peta"
+                              className="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg transition shadow-xs cursor-pointer"
+                              title={`Fokus ke Koordinat Lokasi Bidang Tanah di Peta Sebaran (${item.koordinat ? 'Unit Huntap' : 'Tanah Asal'})`}
                             >
                               <Map className="h-3.5 w-3.5" />
                             </button>

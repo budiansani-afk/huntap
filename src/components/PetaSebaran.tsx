@@ -307,6 +307,31 @@ export default function PetaSebaran({
 
   }, [residents, showHuntap, showTanahAsal, showRelocationLines]);
 
+  // Helper to parse coordinate string with comma or whitespace safely
+  const parseCoord = (coordStr?: string): [number, number] | null => {
+    if (!coordStr) return null;
+    const trimmed = coordStr.trim();
+    if (trimmed.includes(',')) {
+      const parts = trimmed.split(',');
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0].trim());
+        const lng = parseFloat(parts[1].trim());
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return [lat, lng];
+        }
+      }
+    }
+    const spaceParts = trimmed.split(/\s+/);
+    if (spaceParts.length === 2) {
+      const lat = parseFloat(spaceParts[0].trim());
+      const lng = parseFloat(spaceParts[1].trim());
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return [lat, lng];
+      }
+    }
+    return null;
+  };
+
   // Reusable function to focus on a resident on the map
   const focusOnResident = (res: Resident, target: 'huntap' | 'asal' | 'both' = 'huntap') => {
     const map = mapRef.current;
@@ -316,54 +341,57 @@ export default function PetaSebaran({
     let targetLng: number | null = null;
     let isAsal = false;
 
-    if (target === 'asal' && res.koordinatAsal) {
-      const parts = res.koordinatAsal.split(',');
-      if (parts.length === 2) {
-        targetLat = parseFloat(parts[0]);
-        targetLng = parseFloat(parts[1]);
-        isAsal = true;
-      }
-    } else if (res.koordinat) {
-      const parts = res.koordinat.split(',');
-      if (parts.length === 2) {
-        targetLat = parseFloat(parts[0]);
-        targetLng = parseFloat(parts[1]);
-        isAsal = false;
-      }
-    } else if (res.koordinatAsal) {
-      const parts = res.koordinatAsal.split(',');
-      if (parts.length === 2) {
-        targetLat = parseFloat(parts[0]);
-        targetLng = parseFloat(parts[1]);
-        isAsal = true;
-      }
+    const huntapCoord = parseCoord(res.koordinat);
+    const asalCoord = parseCoord(res.koordinatAsal);
+
+    if (target === 'asal' && asalCoord) {
+      targetLat = asalCoord[0];
+      targetLng = asalCoord[1];
+      isAsal = true;
+      setShowTanahAsal(true);
+    } else if (target === 'huntap' && huntapCoord) {
+      targetLat = huntapCoord[0];
+      targetLng = huntapCoord[1];
+      isAsal = false;
+      setShowHuntap(true);
+    } else if (huntapCoord) {
+      targetLat = huntapCoord[0];
+      targetLng = huntapCoord[1];
+      isAsal = false;
+      setShowHuntap(true);
+    } else if (asalCoord) {
+      targetLat = asalCoord[0];
+      targetLng = asalCoord[1];
+      isAsal = true;
+      setShowTanahAsal(true);
     }
 
-    if (targetLat === null || targetLng === null || isNaN(targetLat) || isNaN(targetLng)) return;
+    if (targetLat === null || targetLng === null) {
+      console.warn("Koordinat tidak ditemukan untuk:", res.nomorRumah, res.nama);
+      return;
+    }
 
-    map.invalidateSize();
+    // Invalidate map size so container recalculates any layout shifts
+    map.invalidateSize(true);
+    // Ensure no popup info is opened
+    map.closePopup();
 
     // If both requested and available, fit bounds to show both points
-    if (target === 'both' && res.koordinat && res.koordinatAsal) {
-      const huntapParts = res.koordinat.split(',').map(p => parseFloat(p));
-      const asalParts = res.koordinatAsal.split(',').map(p => parseFloat(p));
-      if (!isNaN(huntapParts[0]) && !isNaN(asalParts[0])) {
-        const bounds = L.latLngBounds([
-          [huntapParts[0], huntapParts[1]],
-          [asalParts[0], asalParts[1]]
-        ]);
-        map.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
-        return;
-      }
+    if (target === 'both' && huntapCoord && asalCoord) {
+      const bounds = L.latLngBounds([huntapCoord, asalCoord]);
+      map.fitBounds(bounds, { padding: [80, 80], maxZoom: 18 });
+      return;
     }
 
+    // Fly directly to the parcel location without popup info
     map.flyTo([targetLat, targetLng], 19, {
       animate: true,
-      duration: 1.2
+      duration: 1.0
     });
 
     if (popupTimerRef.current) {
       clearTimeout(popupTimerRef.current);
+      popupTimerRef.current = null;
     }
 
     const markerObj = isAsal 
@@ -372,23 +400,29 @@ export default function PetaSebaran({
 
     if (markerObj) {
       markerObj.setStyle({
-        radius: 13,
-        weight: 5,
+        radius: 12,
+        weight: 4,
         fillOpacity: 1
       });
-      try {
-        markerObj.openTooltip();
-      } catch (e) {}
+      setTimeout(() => {
+        if (markerObj) {
+          markerObj.setStyle({
+            radius: isAsal ? 9 : 8,
+            weight: isAsal ? 2.5 : 2,
+            fillOpacity: isAsal ? 0.95 : 0.9
+          });
+        }
+      }, 2500);
     }
 
     // Add pulsing highlight ripple effect
-    const pulseColor = isAsal ? '#8b5cf6' : '#3b82f6';
-    const pulseBorder = isAsal ? '#7c3aed' : '#2563eb';
+    const pulseColor = isAsal ? '#8b5cf6' : '#10b981';
+    const pulseBorder = isAsal ? '#7c3aed' : '#059669';
     const pulseCircle = L.circleMarker([targetLat, targetLng], {
       radius: 12,
       fillColor: pulseColor,
       color: pulseBorder,
-      weight: 1.5,
+      weight: 2,
       opacity: 0.9,
       fillOpacity: 0.45
     }).addTo(map);
@@ -411,86 +445,40 @@ export default function PetaSebaran({
         });
       }
     }, 80);
-
-    // Automatically open detailed Leaflet popup
-    popupTimerRef.current = setTimeout(() => {
-      if (!mapRef.current) return;
-      try {
-        const mObj = isAsal 
-          ? asalMarkersMapRef.current[res.id] 
-          : huntapMarkersMapRef.current[res.id];
-
-        const popupTitle = isAsal ? '📍 LOKASI TANAH ASAL' : `Unit ${res.nomorRumah}`;
-        const typeLabel = isAsal ? 'ASAL RELOKASI' : 'UNIT HUNTAP';
-
-        const customPopupContent = `
-          <div style="font-family: 'Inter', sans-serif; padding: 6px; width: 210px; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f3f4f6; padding-bottom: 4px; margin-bottom: 5px;">
-              <span style="font-weight: 900; background: ${isAsal ? '#f3e8ff' : '#eff6ff'}; color: ${isAsal ? '#7c3aed' : '#1d4ed8'}; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${popupTitle}</span>
-              <span style="font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase;">${typeLabel}</span>
-            </div>
-            <div style="font-weight: 800; font-size: 13px; color: #111827; margin-top: 2px;">${res.nama}</div>
-            <div style="font-size: 11px; color: #4b5563; font-weight: 500; margin-top: 1px;">Kec. ${res.kecamatan}, Desa ${res.desa}</div>
-            <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 3px;">Luas: <b>${res.luas || '-'} m²</b></div>
-            <div style="font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 1px;">Alas Hak Asal: <b>${res.dokumenTanah || '-'}</b></div>
-            ${isAsal ? `
-              <div style="margin-top: 5px; font-size: 9px; font-family: monospace; background: #fdf4ff; color: #7e22ce; padding: 2px 5px; border-radius: 4px; border: 1px solid #f5d0fe;">
-                Koordinat Asal: ${res.koordinatAsal}
-              </div>
-            ` : `
-              <div style="margin-top: 6px; display: flex; align-items: center; gap: 4px;">
-                <span style="font-size: 9px; font-weight: 800; color: ${
-                  res.terimaSertipikat === 'Sudah' ? '#047857' : (res.terimaSertipikat === 'Sedang Proses' ? '#c2410c' : '#b45309')
-                }; background: ${
-                  res.terimaSertipikat === 'Sudah' ? '#ecfdf5' : (res.terimaSertipikat === 'Sedang Proses' ? '#fff7ed' : '#fef9c3')
-                }; padding: 2px 6px; border-radius: 4px; display: inline-block;">
-                  Sertipikat: ${res.terimaSertipikat === 'Sudah' ? 'TERBIT' : (res.terimaSertipikat === 'Sedang Proses' ? 'PROSES BPN' : 'BELUM DIAJUKAN')}
-                </span>
-              </div>
-            `}
-          </div>
-        `;
-
-        if (mObj) {
-          mObj.bindPopup(customPopupContent, { closeButton: true, offset: [0, -5] }).openPopup();
-          mapRef.current.once('popupclose', () => {
-            mObj.setStyle({
-              radius: isAsal ? 9 : 8,
-              weight: isAsal ? 2.5 : 2,
-              fillOpacity: isAsal ? 0.95 : 0.9
-            });
-          });
-        } else {
-          L.popup()
-            .setLatLng([targetLat, targetLng])
-            .setContent(customPopupContent)
-            .openOn(mapRef.current);
-        }
-      } catch (e) {
-        console.warn("Popup error:", e);
-      }
-    }, 1300);
   };
 
   // Handle outside pan/locate events (e.g. from table selection)
   useEffect(() => {
+    if (!locateResident) return;
+
     let timer: any = null;
-    if (locateResident) {
-      timer = setTimeout(() => {
-        focusOnResident(locateResident, 'huntap');
-      }, 250);
-    }
-    onClearLocate();
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    const performFocus = () => {
+      attempts++;
+      const map = mapRef.current;
+      if (map) {
+        map.invalidateSize(true);
+        const target = (locateResident as any)._locateTarget || (locateResident.koordinat ? 'huntap' : 'asal');
+        focusOnResident(locateResident, target);
+        // Safely clear locate resident in parent after focus has established
+        setTimeout(() => {
+          onClearLocate();
+        }, 1800);
+      } else if (attempts < maxAttempts) {
+        timer = setTimeout(performFocus, 100);
+      }
+    };
+
+    timer = setTimeout(performFocus, 150);
 
     return () => {
       if (timer) {
         clearTimeout(timer);
       }
-      if (popupTimerRef.current) {
-        clearTimeout(popupTimerRef.current);
-      }
     };
-  }, [locateResident, onClearLocate]);
+  }, [locateResident]);
 
   const handleResetView = () => {
     const map = mapRef.current;
@@ -971,27 +959,6 @@ export default function PetaSebaran({
                     </div>
                   </div>
 
-                  {/* Distance info badge */}
-                  {calculateDistance(selectedResident.koordinat, selectedResident.koordinatAsal) && (
-                    <div className="p-2.5 bg-purple-50 rounded-xl border border-purple-100 flex items-center justify-between text-xs">
-                      <span className="text-purple-900 font-bold flex items-center gap-1">
-                        <Route className="h-3.5 w-3.5 text-purple-600" />
-                        Jarak Relokasi: ~{calculateDistance(selectedResident.koordinat, selectedResident.koordinatAsal)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          focusOnResident(selectedResident, 'both');
-                          setSelectedResident(null);
-                          const mapEl = document.getElementById('map-container-canvas');
-                          if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }}
-                        className="text-[10px] px-2 py-0.5 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 cursor-pointer"
-                      >
-                        Lihat Jalur
-                      </button>
-                    </div>
-                  )}
 
                   <div className="flex items-start gap-2">
                     <Clock className="h-4 w-4 text-pastel-orange shrink-0 mt-0.5" />

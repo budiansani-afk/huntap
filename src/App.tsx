@@ -593,7 +593,7 @@ export default function App() {
   };
 
   const handleLocateResidentFromTable = (resident: Resident) => {
-    setLocateResident(resident);
+    setLocateResident({ ...resident });
     setActiveTab('peta');
   };
 
